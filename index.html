@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#075e54">
+<title>FriendChat</title>
+<style>
+:root{--green:#075e54;--bright:#128c7e;--light:#d9fdd3;--bg:#efeae2;--panel:#fff;--text:#111b21;--muted:#667781;--line:#e9edef}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#dfe5e7;color:var(--text);height:100dvh}
+button,input{font:inherit}button{cursor:pointer;border:0} .hidden{display:none!important}
+#app{height:100dvh;max-width:1100px;margin:auto;background:var(--panel);display:flex;flex-direction:column;box-shadow:0 0 24px #0001}
+.top{background:var(--green);color:white;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.logo{font-size:25px}.brand{font-weight:750;font-size:20px}.sub{font-size:12px;color:#d3eee8}
+.auth-wrap{margin:auto;width:min(92%,420px);padding:28px;background:white;border-radius:20px;box-shadow:0 10px 40px #0002}
+.auth-wrap h1{margin:0 0 8px;color:var(--green)}.muted{color:var(--muted);font-size:14px}
+.field{width:100%;padding:13px 14px;border:1px solid #d5dde0;border-radius:11px;margin:7px 0;outline:none}.field:focus{border-color:var(--bright)}
+.primary{background:var(--bright);color:white;border-radius:11px;padding:12px 16px;font-weight:650}.secondary{background:#e7f4f1;color:var(--green);border-radius:11px;padding:11px 14px;font-weight:650}
+.full{width:100%;margin-top:10px}.auth-error{color:#b42318;font-size:13px;min-height:18px;margin-top:8px}
+#main{display:flex;flex:1;min-height:0}
+.sidebar{width:340px;max-width:42%;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.me{padding:12px 14px;background:#f0f2f5;display:flex;align-items:center;gap:10px}
+.me-info{flex:1;min-width:0}.me-name{font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.search{padding:10px;background:#fff}.search input{margin:0;background:#f0f2f5;border:0;border-radius:9px}
+.user-list{overflow:auto;flex:1}.person{width:100%;display:flex;text-align:left;gap:11px;padding:13px;background:white;border-bottom:1px solid #f0f2f5;align-items:center;color:var(--text)}.person:hover,.person.active{background:#e9edef}
+.avatar{width:44px;height:44px;flex:0 0 44px;border-radius:50%;background:#d9eee7;color:var(--green);display:grid;place-items:center;font-weight:800;font-size:18px}
+.person-text{min-width:0;flex:1}.person-name{font-weight:650}.person-email{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.chat{flex:1;display:flex;flex-direction:column;min-width:0;background-color:var(--bg);background-image:radial-gradient(#ffffff60 1px,transparent 1px);background-size:20px 20px}
+.chat-head{background:#f0f2f5;padding:11px 14px;display:flex;align-items:center;gap:10px}
+.chat-title{font-weight:700}.chat-status{font-size:12px;color:var(--muted)}
+.messages{padding:18px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:8px}
+.bubble{max-width:min(78%,500px);padding:9px 11px;border-radius:10px;background:white;box-shadow:0 1px 1px #0001;overflow-wrap:anywhere;white-space:pre-wrap}
+.bubble.mine{align-self:flex-end;background:var(--light);border-top-right-radius:3px}.bubble.theirs{align-self:flex-start;border-top-left-radius:3px}
+.time{font-size:10px;color:#667781;text-align:right;margin-top:4px}
+.composer{display:flex;gap:8px;padding:10px;background:#f0f2f5;align-items:center}.composer input{border:0;background:white;border-radius:24px;padding:13px 16px;margin:0;flex:1;min-width:0}.send{width:46px;height:46px;border-radius:50%;background:var(--bright);color:white;font-size:20px}
+.empty{margin:auto;text-align:center;padding:24px;color:var(--muted)}.empty .big{font-size:44px}
+.notice{font-size:12px;color:var(--muted);padding:7px 12px;background:#fff8df}
+@media(max-width:650px){#app{height:100dvh}.sidebar{width:100%;max-width:100%;border:0}.chat{display:none}.sidebar.chat-open{display:none}.chat.chat-open{display:flex}.back{display:inline-flex!important}.desktop-only{display:none!important}}
+.back{display:none;background:transparent;color:var(--green);font-size:23px;padding:0 4px}
+</style>
+</head>
+<body>
+<div id="app">
+  <section id="auth">
+    <div class="top"><span class="logo">◉</span><div><div class="brand">FriendChat</div><div class="sub">Private chats with your friends</div></div></div>
+    <div class="auth-wrap">
+      <h1>Welcome 👋</h1><p class="muted">Create an account or sign in to chat with other registered users.</p>
+      <form id="authForm">
+        <input id="displayName" class="field" placeholder="Your name (for new accounts)" autocomplete="name">
+        <input id="email" class="field" type="email" placeholder="Email address" required autocomplete="email">
+        <input id="password" class="field" type="password" placeholder="Password (at least 6 characters)" required minlength="6" autocomplete="current-password">
+        <button id="loginBtn" class="primary full" type="submit">Sign in</button>
+        <button id="signupBtn" class="secondary full" type="button">Create new account</button>
+        <div id="authError" class="auth-error"></div>
+      </form>
+      <p class="muted">Demo project: Firebase setup is required before real messages work.</p>
+    </div>
+  </section>
+
+  <section id="workspace" class="hidden" style="display:flex;flex:1;min-height:0;flex-direction:column">
+    <div class="top"><span class="logo">◉</span><div style="flex:1"><div class="brand">FriendChat</div><div class="sub">Online chat for friends</div></div><button id="logoutBtn" class="secondary">Sign out</button></div>
+    <div class="notice">Only registered users can appear in the contacts list. Share the app and sign up with your friends.</div>
+    <div id="main">
+      <aside id="sidebar" class="sidebar">
+        <div class="me"><div class="avatar" id="myAvatar">Y</div><div class="me-info"><div class="me-name" id="myName">You</div><div class="person-email" id="myEmail"></div></div><button id="refreshUsers" class="secondary" title="Refresh contacts">↻</button></div>
+        <div class="search"><input id="searchUsers" class="field" placeholder="Search friends by name or email"></div>
+        <div id="userList" class="user-list"><div class="empty">Loading contacts…</div></div>
+      </aside>
+      <section id="chatPanel" class="chat">
+        <div id="chatEmpty" class="empty"><div class="big">💬</div><h2>Start a conversation</h2><p>Choose a registered friend from the contacts list.</p></div>
+        <div id="activeChat" class="hidden" style="display:flex;flex:1;min-height:0;flex-direction:column">
+          <header class="chat-head"><button id="backBtn" class="back" aria-label="Back to contacts">‹</button><div class="avatar" id="friendAvatar">F</div><div style="flex:1;min-width:0"><div id="friendName" class="chat-title">Friend</div><div id="friendEmail" class="chat-status"></div></div></header>
+          <div id="messages" class="messages"></div>
+          <form id="messageForm" class="composer"><input id="messageInput" maxlength="4000" placeholder="Type a message…" autocomplete="off" required><button class="send" type="submit" aria-label="Send message">➤</button></form>
+        </div>
+      </section>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDocs, query, orderBy, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+/* 1. Create a Firebase project and paste your web-app config below. */
+const firebaseConfig = {
+  apiKey: "AIzaSyDhlMfrjMUgPTV4FUQeFqxPstXS4x9Wt0c",
+  authDomain: "friendschat-6d805.firebaseapp.com",
+  projectId: "friendschat-6d805",
+  storageBucket: "friendschat-6d805.firebasestorage.app",
+  messagingSenderId: "572525903948",
+  appId: "1:572525903948:web:d0fab69128b9dfe1a0f4e9"
+};
+
+const authSection = document.querySelector("#auth");
+const workspace = document.querySelector("#workspace");
+const authError = document.querySelector("#authError");
+const userList = document.querySelector("#userList");
+const messagesEl = document.querySelector("#messages");
+let auth, db, currentUser = null, selectedUser = null, unsubscribeMessages = null, allUsers = [];
+
+const configured = firebaseConfig.apiKey !== "PASTE_API_KEY_HERE";
+if (configured) {
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  onAuthStateChanged(auth, async user => {
+    currentUser = user;
+    authSection.classList.toggle("hidden", !!user);
+    workspace.classList.toggle("hidden", !user);
+    if (user) {
+      document.querySelector("#myName").textContent = user.displayName || user.email;
+      document.querySelector("#myEmail").textContent = user.email || "";
+      document.querySelector("#myAvatar").textContent = (user.displayName || user.email || "Y").slice(0,1).toUpperCase();
+      await saveProfile(user);
+      await loadUsers();
+    } else {
+      cleanupChat();
+    }
+  });
+} else {
+  authError.textContent = "Setup needed: add your Firebase web config in index.html first.";
+  document.querySelector("#loginBtn").disabled = true;
+  document.querySelector("#signupBtn").disabled = true;
+}
+
+async function saveProfile(user) {
+  await setDoc(doc(db, "users", user.uid), {
+    uid: user.uid,
+    name: user.displayName || user.email.split("@")[0],
+    email: user.email,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+document.querySelector("#authForm").addEventListener("submit", async e => {
+  e.preventDefault(); authError.textContent = "";
+  try { await signInWithEmailAndPassword(auth, document.querySelector("#email").value.trim(), document.querySelector("#password").value); }
+  catch (err) { authError.textContent = friendlyError(err); }
+});
+document.querySelector("#signupBtn").addEventListener("click", async () => {
+  authError.textContent = "";
+  const email = document.querySelector("#email").value.trim();
+  const password = document.querySelector("#password").value;
+  const name = document.querySelector("#displayName").value.trim();
+  if (!email || password.length < 6) { authError.textContent = "Enter an email and password with at least 6 characters."; return; }
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    if (name) await updateProfile(cred.user, { displayName: name });
+    await saveProfile(cred.user);
+  } catch (err) { authError.textContent = friendlyError(err); }
+});
+document.querySelector("#logoutBtn").addEventListener("click", () => signOut(auth));
+document.querySelector("#refreshUsers").addEventListener("click", loadUsers);
+document.querySelector("#searchUsers").addEventListener("input", renderUsers);
+document.querySelector("#backBtn").addEventListener("click", () => {
+  document.querySelector("#sidebar").classList.remove("chat-open");
+  document.querySelector("#chatPanel").classList.remove("chat-open");
+});
+
+async function loadUsers() {
+  if (!currentUser) return;
+  userList.innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    const snap = await getDocs(collection(db, "users"));
+    allUsers = snap.docs.map(d => d.data()).filter(u => u.uid !== currentUser.uid);
+    renderUsers();
+  } catch (err) { userList.innerHTML = `<div class="empty">${escapeHtml(friendlyError(err))}<br><br>Check Firestore security rules.</div>`; }
+}
+function renderUsers() {
+  const term = document.querySelector("#searchUsers").value.toLowerCase();
+  const filtered = allUsers.filter(u => (u.name || "").toLowerCase().includes(term) || (u.email || "").toLowerCase().includes(term));
+  userList.innerHTML = "";
+  if (!filtered.length) { userList.innerHTML = '<div class="empty">No friends found yet.<br>Ask your friends to create an account.</div>'; return; }
+  filtered.sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  filtered.forEach(u => {
+    const b = document.createElement("button");
+    b.className = "person" + (selectedUser?.uid === u.uid ? " active" : "");
+    b.innerHTML = `<div class="avatar">${escapeHtml((u.name || u.email || "F").slice(0,1).toUpperCase())}</div><div class="person-text"><div class="person-name">${escapeHtml(u.name || "Friend")}</div><div class="person-email">${escapeHtml(u.email || "")}</div></div>`;
+    b.addEventListener("click", () => openChat(u));
+    userList.appendChild(b);
+  });
+}
+function conversationId(uid1, uid2) { return [uid1, uid2].sort().join("_"); }
+function cleanupChat() { if (unsubscribeMessages) unsubscribeMessages(); unsubscribeMessages = null; selectedUser = null; }
+function openChat(friend) {
+  selectedUser = friend;
+  document.querySelector("#chatEmpty").classList.add("hidden");
+  document.querySelector("#activeChat").classList.remove("hidden");
+  document.querySelector("#friendName").textContent = friend.name || "Friend";
+  document.querySelector("#friendEmail").textContent = friend.email || "";
+  document.querySelector("#friendAvatar").textContent = (friend.name || friend.email || "F").slice(0,1).toUpperCase();
+  document.querySelector("#sidebar").classList.add("chat-open");
+  document.querySelector("#chatPanel").classList.add("chat-open");
+  renderUsers();
+  if (unsubscribeMessages) unsubscribeMessages();
+  messagesEl.innerHTML = '<div class="empty">Loading messages…</div>';
+  const messagesQuery = query(collection(db, "chats", conversationId(currentUser.uid, friend.uid), "messages"), orderBy("createdAt", "asc"));
+  unsubscribeMessages = onSnapshot(messagesQuery, snap => {
+    messagesEl.innerHTML = "";
+    snap.forEach(item => {
+      const m = item.data();
+      const bubble = document.createElement("div");
+      bubble.className = "bubble " + (m.senderId === currentUser.uid ? "mine" : "theirs");
+      bubble.innerHTML = `${escapeHtml(m.text || "")}<div class="time">${m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "sending…"}</div>`;
+      messagesEl.appendChild(bubble);
+    });
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }, err => { messagesEl.innerHTML = `<div class="empty">${escapeHtml(friendlyError(err))}</div>`; });
+}
+document.querySelector("#messageForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const input = document.querySelector("#messageInput");
+  const text = input.value.trim();
+  if (!text || !selectedUser || !currentUser) return;
+  input.value = "";
+  try {
+    const chatId = conversationId(currentUser.uid, selectedUser.uid);
+    await addDoc(collection(db, "chats", chatId, "messages"), {
+      text, senderId: currentUser.uid, receiverId: selectedUser.uid, createdAt: serverTimestamp()
+    });
+  } catch (err) { alert("Message send nahi hua: " + friendlyError(err)); input.value = text; }
+});
+function friendlyError(err) {
+  const map = {
+    "auth/invalid-credential":"Email or password is incorrect.",
+    "auth/email-already-in-use":"This email already has an account. Sign in instead.",
+    "auth/weak-password":"Use a stronger password (at least 6 characters).",
+    "auth/invalid-email":"Please enter a valid email address.",
+    "permission-denied":"Permission denied. Check the Firestore rules in README.",
+    "unavailable":"Network unavailable. Check your internet connection."
+  };
+  return map[err?.code] || err?.message || "Something went wrong.";
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
