@@ -22,10 +22,10 @@ button,input{font:inherit}button{cursor:pointer;border:0} .hidden{display:none!i
 .sidebar{width:340px;max-width:42%;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
 .me{padding:12px 14px;background:#171e30;display:flex;align-items:center;gap:10px}
 .me-info{flex:1;min-width:0}.me-name{font-weight:700;overflow:hidden;text-overflow:ellipsis}
-.search{padding:10px;background:#fff}.search input{margin:0;background:#f0f2f5;border:0;border-radius:9px}
+.search{padding:10px;background:#151b2b}.search input{margin:0;background:#0e1422;border:1px solid #293149;border-radius:9px}
 .user-list{overflow:auto;flex:1}.person{width:100%;display:flex;text-align:left;gap:11px;padding:13px;background:#151b2b;border-bottom:1px solid #252e45;align-items:center;color:var(--text)}.person:hover,.person.active{background:#222b43}
 .avatar{width:44px;height:44px;flex:0 0 44px;border-radius:50%;background:#d9eee7;color:var(--green);display:grid;place-items:center;font-weight:800;font-size:18px}
-.person-text{min-width:0;flex:1}.person-name{font-weight:650}.person-email{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.person-text{min-width:0;flex:1}.person-name{font-weight:650}.person-email{display:none}
 .chat{flex:1;display:flex;flex-direction:column;min-width:0;background-color:var(--bg);background-image:radial-gradient(#ffffff60 1px,transparent 1px);background-size:20px 20px}
 .chat-head{background:#171e30;padding:11px 14px;display:flex;align-items:center;gap:10px}
 .chat-title{font-weight:700}.chat-status{font-size:12px;color:var(--muted)}
@@ -33,7 +33,7 @@ button,input{font:inherit}button{cursor:pointer;border:0} .hidden{display:none!i
 .bubble{max-width:min(78%,500px);padding:9px 11px;border-radius:10px;background:#20283b;box-shadow:0 1px 3px #0004;overflow-wrap:anywhere;white-space:pre-wrap}
 .bubble.mine{align-self:flex-end;background:#29385a;border-top-right-radius:3px}.bubble.theirs{align-self:flex-start;border-top-left-radius:3px}
 .time{font-size:10px;color:#9aa6c2;text-align:right;margin-top:4px}.receipt{font-weight:800;letter-spacing:-2px}.receipt.sent{color:#9aa6c2}.receipt.read{color:#53b7ff}
-.composer{display:flex;gap:8px;padding:10px;background:#171e30;align-items:center}.composer input[type=text]{border:0;background:#0e1422;color:var(--text);border:1px solid #293149;border-radius:24px;padding:13px 16px;margin:0;flex:1;min-width:0}.send{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:var(--bright);color:white;font-size:20px}.attach{width:44px;height:44px;flex:0 0 44px;border-radius:50%;background:#e0f2ed;color:var(--green);font-size:22px}.image-message{display:block;max-width:min(100%,320px);max-height:320px;object-fit:contain;border-radius:8px;margin:2px 0 5px;cursor:zoom-in}.image-caption{white-space:pre-wrap;overflow-wrap:anywhere}.upload-status{font-size:12px;color:var(--muted);padding:0 14px 8px;background:#f0f2f5}.upload-status.error{color:#b42318}
+.composer{display:flex;gap:8px;padding:10px;background:#171e30;align-items:center}.composer input[type=text]{border:0;background:#0e1422;color:var(--text);border:1px solid #293149;border-radius:24px;padding:13px 16px;margin:0;flex:1;min-width:0}.send{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:var(--bright);color:white;font-size:20px}.attach{width:44px;height:44px;flex:0 0 44px;border-radius:50%;background:#27314b;color:#edf1ff;font-size:22px}.emoji-panel{display:flex;flex-wrap:wrap;gap:5px;padding:8px;background:#171e30;border-top:1px solid var(--line)}.emoji-panel button{background:#27314b;color:white;border-radius:8px;padding:6px;font-size:20px}.typing-line{font-size:12px;color:#7da7ff;padding:0 16px 6px;min-height:18px}.image-message{display:block;max-width:min(100%,320px);max-height:320px;object-fit:contain;border-radius:8px;margin:2px 0 5px;cursor:zoom-in}.image-caption{white-space:pre-wrap;overflow-wrap:anywhere}.upload-status{font-size:12px;color:var(--muted);padding:0 14px 8px;background:#f0f2f5}.upload-status.error{color:#b42318}
 .empty{margin:auto;text-align:center;padding:24px;color:var(--muted)}.empty .big{font-size:44px}
 .notice{font-size:12px;color:#bac6ff;padding:7px 12px;background:#202943}
 @media(max-width:650px){#app{height:100dvh}.sidebar{width:100%;max-width:100%;border:0}.chat{display:none}.sidebar.chat-open{display:none}.chat.chat-open{display:flex}.back{display:inline-flex!important}.desktop-only{display:none!important}}
@@ -63,17 +63,15 @@ button,input{font:inherit}button{cursor:pointer;border:0} .hidden{display:none!i
     <div class="notice">Only registered users can appear in the contacts list. Share the app and sign up with your friends.</div>
     <div id="main">
       <aside id="sidebar" class="sidebar">
-        <div class="me"><div class="avatar" id="myAvatar">Y</div><div class="me-info"><div class="me-name" id="myName">You</div><div class="person-email" id="myEmail"></div></div><button id="refreshUsers" class="secondary" title="Refresh contacts">↻</button></div>
-        <div class="search"><input id="searchUsers" class="field" placeholder="Search friends by name or email"></div>
-        <div id="userList" class="user-list"><div class="empty">Loading contacts…</div></div>
+        <div class="me"><div class="avatar" id="myAvatar">Y</div><div class="me-info"><div class="me-name" id="myName">You</div></div><button id="refreshUsers" class="secondary" title="Refresh contacts">↻</button></div>
+        <div class="search"><input id="searchUsers" class="field" placeholder="Type a friend’s name to search"></div>
+        <div id="userList" class="user-list"><div class="empty">🔎 Search by name to find friends.</div></div>
       </aside>
       <section id="chatPanel" class="chat">
         <div id="chatEmpty" class="empty"><div class="big">💬</div><h2>Start a conversation</h2><p>Choose a registered friend from the contacts list.</p></div>
         <div id="activeChat" class="hidden" style="display:flex;flex:1;min-height:0;flex-direction:column">
-          <header class="chat-head"><button id="backBtn" class="back" aria-label="Back to contacts">‹</button><div class="avatar" id="friendAvatar">F</div><div style="flex:1;min-width:0"><div id="friendName" class="chat-title">Friend</div><div id="friendEmail" class="chat-status"></div></div></header>
-          <div id="messages" class="messages"></div>
-          
-          <form id="messageForm" class="composer"><input id="messageInput" type="text" maxlength="4000" placeholder="Type a message…" autocomplete="off"><button class="send" type="submit" aria-label="Send message">➤</button></form>
+          <header class="chat-head"><button id="backBtn" class="back" aria-label="Back to contacts">‹</button><div class="avatar" id="friendAvatar">F</div><div style="flex:1;min-width:0"><div id="friendName" class="chat-title">Friend</div><div id="typingStatus" class="chat-status"></div></div></header>
+          <div id="messages" class="messages"></div><div id="typingLine" class="typing-line"></div><div id="emojiPanel" class="emoji-panel hidden"></div><form id="messageForm" class="composer"><button id="emojiBtn" class="attach" type="button" aria-label="Emoji picker">☺</button><input id="messageInput" type="text" maxlength="4000" placeholder="Type a message…" autocomplete="off"><button class="send" type="submit" aria-label="Send message">➤</button></form>
         </div>
       </section>
     </div>
@@ -83,7 +81,7 @@ button,input{font:inherit}button{cursor:pointer;border:0} .hidden{display:none!i
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDocs, query, orderBy, addDoc, onSnapshot, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, getDocs, getDoc, query, orderBy, addDoc, onSnapshot, serverTimestamp, updateDoc, runTransaction, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 /* 1. Create a Firebase project and paste your web-app config below. */
 const firebaseConfig = {
@@ -100,7 +98,7 @@ const workspace = document.querySelector("#workspace");
 const authError = document.querySelector("#authError");
 const userList = document.querySelector("#userList");
 const messagesEl = document.querySelector("#messages");
-let auth, db, currentUser = null, selectedUser = null, unsubscribeMessages = null, allUsers = [];
+let auth, db, currentUser = null, selectedUser = null, unsubscribeMessages = null, unsubscribeFriend = null, allUsers = [], typingTimer = null;
 
 const configured = firebaseConfig.apiKey !== "PASTE_API_KEY_HERE";
 if (configured) {
@@ -113,7 +111,7 @@ if (configured) {
     workspace.classList.toggle("hidden", !user);
     if (user) {
       document.querySelector("#myName").textContent = user.displayName || user.email;
-      document.querySelector("#myEmail").textContent = user.email || "";
+      document.querySelector("#myEmail")?.remove();
       document.querySelector("#myAvatar").textContent = (user.displayName || user.email || "Y").slice(0,1).toUpperCase();
       await saveProfile(user);
       await loadUsers();
@@ -131,7 +129,6 @@ async function saveProfile(user) {
   await setDoc(doc(db, "users", user.uid), {
     uid: user.uid,
     name: user.displayName || user.email.split("@")[0],
-    email: user.email,
     updatedAt: serverTimestamp()
   }, { merge: true });
 }
@@ -144,13 +141,29 @@ document.querySelector("#signupBtn").addEventListener("click", async () => {
   authError.textContent = "";
   const email = document.querySelector("#email").value.trim();
   const password = document.querySelector("#password").value;
-  const name = document.querySelector("#displayName").value.trim();
+  const name = document.querySelector("#displayName").value.trim().replace(/\s+/g," ");
+  if (!name || name.length < 2) { authError.textContent = "Enter a name with at least 2 characters."; return; }
   if (!email || password.length < 6) { authError.textContent = "Enter an email and password with at least 6 characters."; return; }
+  const nameKey = name.toLocaleLowerCase().normalize("NFKC").replace(/\s+/g," ");
+  let cred = null;
   try {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    if (name) await updateProfile(cred.user, { displayName: name });
+    // Reserve the name atomically so two accounts cannot claim the same name.
+    const nameRef = doc(db, "usernames", nameKey);
+    await runTransaction(db, async tx => {
+      const existing = await tx.get(nameRef);
+      if (existing.exists()) throw new Error("NAME_TAKEN");
+      tx.set(nameRef, { name, reserved: true, createdAt: serverTimestamp() });
+    });
+    cred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(cred.user, { displayName: name });
+    await setDoc(doc(db, "usernames", nameKey), { uid: cred.user.uid, name, createdAt: serverTimestamp() }, { merge: true });
     await saveProfile(cred.user);
-  } catch (err) { authError.textContent = friendlyError(err); }
+  } catch (err) {
+    if (err.message === "NAME_TAKEN") authError.textContent = "This name is already registered. Choose a different name.";
+    else authError.textContent = friendlyError(err);
+    // Do not silently remove a reserved name; if account creation fails, release reservation when possible.
+    if (!cred) { try { const r = doc(db, "usernames", nameKey); const s = await getDoc(r); if (s.exists() && s.data().reserved === true) await deleteDoc(r); } catch (_) {} }
+  }
 });
 document.querySelector("#logoutBtn").addEventListener("click", () => signOut(auth));
 document.querySelector("#refreshUsers").addEventListener("click", loadUsers);
@@ -162,40 +175,43 @@ document.querySelector("#backBtn").addEventListener("click", () => {
 
 async function loadUsers() {
   if (!currentUser) return;
-  userList.innerHTML = '<div class="empty">Loading…</div>';
+  allUsers = [];
+  renderUsers();
   try {
     const snap = await getDocs(collection(db, "users"));
-    allUsers = snap.docs.map(d => d.data()).filter(u => u.uid !== currentUser.uid);
+    allUsers = snap.docs.map(d => d.data()).filter(u => u.uid !== currentUser.uid && u.name);
     renderUsers();
   } catch (err) { userList.innerHTML = `<div class="empty">${escapeHtml(friendlyError(err))}<br><br>Check Firestore security rules.</div>`; }
 }
 function renderUsers() {
-  const term = document.querySelector("#searchUsers").value.toLowerCase();
-  const filtered = allUsers.filter(u => (u.name || "").toLowerCase().includes(term) || (u.email || "").toLowerCase().includes(term));
+  const term = document.querySelector("#searchUsers").value.trim().toLocaleLowerCase();
   userList.innerHTML = "";
-  if (!filtered.length) { userList.innerHTML = '<div class="empty">No friends found yet.<br>Ask your friends to create an account.</div>'; return; }
+  if (!term) { userList.innerHTML = '<div class="empty">🔎 Type a friend’s name to search.</div>'; return; }
+  const filtered = allUsers.filter(u => (u.name || "").toLocaleLowerCase().includes(term));
+  if (!filtered.length) { userList.innerHTML = '<div class="empty">No matching name found.</div>'; return; }
   filtered.sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   filtered.forEach(u => {
     const b = document.createElement("button");
     b.className = "person" + (selectedUser?.uid === u.uid ? " active" : "");
-    b.innerHTML = `<div class="avatar">${escapeHtml((u.name || u.email || "F").slice(0,1).toUpperCase())}</div><div class="person-text"><div class="person-name">${escapeHtml(u.name || "Friend")}</div><div class="person-email">${escapeHtml(u.email || "")}</div></div>`;
+    b.innerHTML = `<div class="avatar">${escapeHtml((u.name || "F").slice(0,1).toUpperCase())}</div><div class="person-text"><div class="person-name">${escapeHtml(u.name || "Friend")}</div></div>`;
     b.addEventListener("click", () => openChat(u));
     userList.appendChild(b);
   });
 }
 function conversationId(uid1, uid2) { return [uid1, uid2].sort().join("_"); }
-function cleanupChat() { if (unsubscribeMessages) unsubscribeMessages(); unsubscribeMessages = null; selectedUser = null; }
+function cleanupChat() { if (unsubscribeMessages) unsubscribeMessages(); if (unsubscribeFriend) unsubscribeFriend(); unsubscribeMessages = null; unsubscribeFriend = null; selectedUser = null; }
 function openChat(friend) {
   selectedUser = friend;
   document.querySelector("#chatEmpty").classList.add("hidden");
   document.querySelector("#activeChat").classList.remove("hidden");
   document.querySelector("#friendName").textContent = friend.name || "Friend";
-  document.querySelector("#friendEmail").textContent = friend.email || "";
+  document.querySelector("#typingStatus").textContent = ""; document.querySelector("#typingLine").textContent = "";
   document.querySelector("#friendAvatar").textContent = (friend.name || friend.email || "F").slice(0,1).toUpperCase();
   document.querySelector("#sidebar").classList.add("chat-open");
   document.querySelector("#chatPanel").classList.add("chat-open");
   renderUsers();
-  if (unsubscribeMessages) unsubscribeMessages();
+  if (unsubscribeMessages) unsubscribeMessages(); if (unsubscribeFriend) unsubscribeFriend();
+  unsubscribeFriend = onSnapshot(doc(db, "users", friend.uid), snap => { const d=snap.data() || {}; const typing = d.typingTo === conversationId(currentUser.uid, friend.uid) && d.typingAt && (Date.now() - d.typingAt.toMillis() < 6000); document.querySelector("#typingStatus").textContent = typing ? "typing…" : ""; document.querySelector("#typingLine").textContent = typing ? `${friend.name || "Friend"} is typing…` : ""; });
   messagesEl.innerHTML = '<div class="empty">Loading messages…</div>';
   const messagesQuery = query(collection(db, "chats", conversationId(currentUser.uid, friend.uid), "messages"), orderBy("createdAt", "asc"));
   unsubscribeMessages = onSnapshot(messagesQuery, snap => {
@@ -230,6 +246,16 @@ function openChat(friend) {
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }, err => { messagesEl.innerHTML = `<div class="empty">${escapeHtml(friendlyError(err))}</div>`; });
 }
+const emojiPanel = document.querySelector("#emojiPanel");
+const emojiSet = ["😀","😂","🥹","😍","😘","😊","😎","😭","😡","❤️","💙","👍","👎","🎉","🔥","🙏","🤝","💯","✨","😴","🤔","🙌","🤣","😇"];
+emojiSet.forEach(emoji => { const b=document.createElement("button"); b.type="button"; b.textContent=emoji; b.addEventListener("click",()=>{ const input=document.querySelector("#messageInput"); input.value += emoji; input.focus(); emojiPanel.classList.add("hidden"); input.dispatchEvent(new Event("input")); }); emojiPanel.appendChild(b); });
+document.querySelector("#emojiBtn").addEventListener("click",()=>emojiPanel.classList.toggle("hidden"));
+document.querySelector("#messageInput").addEventListener("input",()=>{
+  if (!currentUser || !selectedUser) return;
+  if (typingTimer) clearTimeout(typingTimer);
+  updateDoc(doc(db,"users",currentUser.uid), { typingTo: conversationId(currentUser.uid, selectedUser.uid), typingAt: serverTimestamp() }).catch(()=>{});
+  typingTimer = setTimeout(()=>updateDoc(doc(db,"users",currentUser.uid), { typingTo: "", typingAt: serverTimestamp() }).catch(()=>{}), 3500);
+});
 document.querySelector("#messageForm").addEventListener("submit", async e => {
   e.preventDefault();
   const input = document.querySelector("#messageInput");
@@ -241,6 +267,7 @@ document.querySelector("#messageForm").addEventListener("submit", async e => {
     await addDoc(collection(db, "chats", chatId, "messages"), {
       type: "text", text, senderId: currentUser.uid, receiverId: selectedUser.uid, createdAt: serverTimestamp()
     });
+    await updateDoc(doc(db,"users",currentUser.uid), { typingTo: "", typingAt: serverTimestamp() }).catch(()=>{});
   } catch (err) { alert("Message send nahi hua: " + friendlyError(err)); input.value = text; }
 });
 function friendlyError(err) {
