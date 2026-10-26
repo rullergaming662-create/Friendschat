@@ -1,40 +1,41 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#075e54">
+<meta name="theme-color" content="#10141d">
 <title>FriendChat</title>
 <style>
-:root{--green:#075e54;--bright:#128c7e;--light:#d9fdd3;--bg:#efeae2;--panel:#fff;--text:#111b21;--muted:#667781;--line:#e9edef}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#dfe5e7;color:var(--text);height:100dvh}
+:root{color-scheme:dark;--green:#151b2b;--bright:#6577ff;--light:#263455;--bg:#0d1220;--panel:#151b2b;--text:#edf1ff;--muted:#9aa6c2;--line:#293149}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#090d16;color:var(--text);height:100dvh}
 button,input{font:inherit}button{cursor:pointer;border:0} .hidden{display:none!important}
-#app{height:100dvh;max-width:1100px;margin:auto;background:var(--panel);display:flex;flex-direction:column;box-shadow:0 0 24px #0001}
+#app{height:100dvh;max-width:1100px;margin:auto;background:var(--panel);display:flex;flex-direction:column;box-shadow:0 0 35px #0006}
 .top{background:var(--green);color:white;padding:14px 16px;display:flex;align-items:center;gap:12px}
 .logo{font-size:25px}.brand{font-weight:750;font-size:20px}.sub{font-size:12px;color:#d3eee8}
-.auth-wrap{margin:auto;width:min(92%,420px);padding:28px;background:white;border-radius:20px;box-shadow:0 10px 40px #0002}
+.auth-wrap{margin:auto;width:min(92%,420px);padding:28px;background:#151b2b;border:1px solid #293149;border-radius:20px;box-shadow:0 10px 40px #0005}
 .auth-wrap h1{margin:0 0 8px;color:var(--green)}.muted{color:var(--muted);font-size:14px}
-.field{width:100%;padding:13px 14px;border:1px solid #d5dde0;border-radius:11px;margin:7px 0;outline:none}.field:focus{border-color:var(--bright)}
-.primary{background:var(--bright);color:white;border-radius:11px;padding:12px 16px;font-weight:650}.secondary{background:#e7f4f1;color:var(--green);border-radius:11px;padding:11px 14px;font-weight:650}
+.field{width:100%;padding:13px 14px;border:1px solid #303a55;border-radius:11px;margin:7px 0;outline:none;background:#0e1422;color:var(--text)}.field:focus{border-color:var(--bright)}
+.primary{background:var(--bright);color:white;border-radius:11px;padding:12px 16px;font-weight:650}.secondary{background:#27314b;color:#e2e8ff;border-radius:11px;padding:11px 14px;font-weight:650}
 .full{width:100%;margin-top:10px}.auth-error{color:#b42318;font-size:13px;min-height:18px;margin-top:8px}
 #main{display:flex;flex:1;min-height:0}
 .sidebar{width:340px;max-width:42%;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
-.me{padding:12px 14px;background:#f0f2f5;display:flex;align-items:center;gap:10px}
+.me{padding:12px 14px;background:#171e30;display:flex;align-items:center;gap:10px}
 .me-info{flex:1;min-width:0}.me-name{font-weight:700;overflow:hidden;text-overflow:ellipsis}
 .search{padding:10px;background:#fff}.search input{margin:0;background:#f0f2f5;border:0;border-radius:9px}
-.user-list{overflow:auto;flex:1}.person{width:100%;display:flex;text-align:left;gap:11px;padding:13px;background:white;border-bottom:1px solid #f0f2f5;align-items:center;color:var(--text)}.person:hover,.person.active{background:#e9edef}
+.user-list{overflow:auto;flex:1}.person{width:100%;display:flex;text-align:left;gap:11px;padding:13px;background:#151b2b;border-bottom:1px solid #252e45;align-items:center;color:var(--text)}.person:hover,.person.active{background:#222b43}
 .avatar{width:44px;height:44px;flex:0 0 44px;border-radius:50%;background:#d9eee7;color:var(--green);display:grid;place-items:center;font-weight:800;font-size:18px}
 .person-text{min-width:0;flex:1}.person-name{font-weight:650}.person-email{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
 .chat{flex:1;display:flex;flex-direction:column;min-width:0;background-color:var(--bg);background-image:radial-gradient(#ffffff60 1px,transparent 1px);background-size:20px 20px}
-.chat-head{background:#f0f2f5;padding:11px 14px;display:flex;align-items:center;gap:10px}
+.chat-head{background:#171e30;padding:11px 14px;display:flex;align-items:center;gap:10px}
 .chat-title{font-weight:700}.chat-status{font-size:12px;color:var(--muted)}
 .messages{padding:18px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:8px}
-.bubble{max-width:min(78%,500px);padding:9px 11px;border-radius:10px;background:white;box-shadow:0 1px 1px #0001;overflow-wrap:anywhere;white-space:pre-wrap}
-.bubble.mine{align-self:flex-end;background:var(--light);border-top-right-radius:3px}.bubble.theirs{align-self:flex-start;border-top-left-radius:3px}
-.time{font-size:10px;color:#667781;text-align:right;margin-top:4px}
-.composer{display:flex;gap:8px;padding:10px;background:#f0f2f5;align-items:center}.composer input{border:0;background:white;border-radius:24px;padding:13px 16px;margin:0;flex:1;min-width:0}.send{width:46px;height:46px;border-radius:50%;background:var(--bright);color:white;font-size:20px}
+.bubble{max-width:min(78%,500px);padding:9px 11px;border-radius:10px;background:#20283b;box-shadow:0 1px 3px #0004;overflow-wrap:anywhere;white-space:pre-wrap}
+.bubble.mine{align-self:flex-end;background:#29385a;border-top-right-radius:3px}.bubble.theirs{align-self:flex-start;border-top-left-radius:3px}
+.time{font-size:10px;color:#9aa6c2;text-align:right;margin-top:4px}.receipt{font-weight:800;letter-spacing:-2px}.receipt.sent{color:#9aa6c2}.receipt.read{color:#53b7ff}
+.composer{display:flex;gap:8px;padding:10px;background:#171e30;align-items:center}.composer input[type=text]{border:0;background:#0e1422;color:var(--text);border:1px solid #293149;border-radius:24px;padding:13px 16px;margin:0;flex:1;min-width:0}.send{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:var(--bright);color:white;font-size:20px}.attach{width:44px;height:44px;flex:0 0 44px;border-radius:50%;background:#e0f2ed;color:var(--green);font-size:22px}.image-message{display:block;max-width:min(100%,320px);max-height:320px;object-fit:contain;border-radius:8px;margin:2px 0 5px;cursor:zoom-in}.image-caption{white-space:pre-wrap;overflow-wrap:anywhere}.upload-status{font-size:12px;color:var(--muted);padding:0 14px 8px;background:#f0f2f5}.upload-status.error{color:#b42318}
 .empty{margin:auto;text-align:center;padding:24px;color:var(--muted)}.empty .big{font-size:44px}
-.notice{font-size:12px;color:var(--muted);padding:7px 12px;background:#fff8df}
+.notice{font-size:12px;color:#bac6ff;padding:7px 12px;background:#202943}
 @media(max-width:650px){#app{height:100dvh}.sidebar{width:100%;max-width:100%;border:0}.chat{display:none}.sidebar.chat-open{display:none}.chat.chat-open{display:flex}.back{display:inline-flex!important}.desktop-only{display:none!important}}
 .back{display:none;background:transparent;color:var(--green);font-size:23px;padding:0 4px}
 </style>
@@ -71,7 +72,8 @@ button,input{font:inherit}button{cursor:pointer;border:0} .hidden{display:none!i
         <div id="activeChat" class="hidden" style="display:flex;flex:1;min-height:0;flex-direction:column">
           <header class="chat-head"><button id="backBtn" class="back" aria-label="Back to contacts">‹</button><div class="avatar" id="friendAvatar">F</div><div style="flex:1;min-width:0"><div id="friendName" class="chat-title">Friend</div><div id="friendEmail" class="chat-status"></div></div></header>
           <div id="messages" class="messages"></div>
-          <form id="messageForm" class="composer"><input id="messageInput" maxlength="4000" placeholder="Type a message…" autocomplete="off" required><button class="send" type="submit" aria-label="Send message">➤</button></form>
+          
+          <form id="messageForm" class="composer"><input id="messageInput" type="text" maxlength="4000" placeholder="Type a message…" autocomplete="off"><button class="send" type="submit" aria-label="Send message">➤</button></form>
         </div>
       </section>
     </div>
@@ -81,7 +83,7 @@ button,input{font:inherit}button{cursor:pointer;border:0} .hidden{display:none!i
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDocs, query, orderBy, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, getDocs, query, orderBy, addDoc, onSnapshot, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 /* 1. Create a Firebase project and paste your web-app config below. */
 const firebaseConfig = {
@@ -200,9 +202,29 @@ function openChat(friend) {
     messagesEl.innerHTML = "";
     snap.forEach(item => {
       const m = item.data();
+      // Mark messages as read when the recipient has this conversation open.
+      if (m.senderId !== currentUser.uid && m.receiverId === currentUser.uid && !m.readAt) {
+        updateDoc(doc(db, "chats", conversationId(currentUser.uid, friend.uid), "messages", item.id), {
+          readAt: serverTimestamp()
+        }).catch(err => console.warn("Could not mark message read:", err));
+      }
       const bubble = document.createElement("div");
       bubble.className = "bubble " + (m.senderId === currentUser.uid ? "mine" : "theirs");
-      bubble.innerHTML = `${escapeHtml(m.text || "")}<div class="time">${m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "sending…"}</div>`;
+      const textNode = document.createElement("div");
+      textNode.textContent = m.text || "";
+      bubble.appendChild(textNode);
+      const time = document.createElement("div");
+      time.className = "time";
+      const clock = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "sending…";
+      time.textContent = clock;
+      if (m.senderId === currentUser.uid) {
+        const ticks = document.createElement("span");
+        ticks.className = "receipt " + (m.readAt ? "read" : "sent");
+        ticks.textContent = " ✓✓";
+        ticks.title = m.readAt ? "Seen" : "Sent";
+        time.appendChild(ticks);
+      }
+      bubble.appendChild(time);
       messagesEl.appendChild(bubble);
     });
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -217,7 +239,7 @@ document.querySelector("#messageForm").addEventListener("submit", async e => {
   try {
     const chatId = conversationId(currentUser.uid, selectedUser.uid);
     await addDoc(collection(db, "chats", chatId, "messages"), {
-      text, senderId: currentUser.uid, receiverId: selectedUser.uid, createdAt: serverTimestamp()
+      type: "text", text, senderId: currentUser.uid, receiverId: selectedUser.uid, createdAt: serverTimestamp()
     });
   } catch (err) { alert("Message send nahi hua: " + friendlyError(err)); input.value = text; }
 });
