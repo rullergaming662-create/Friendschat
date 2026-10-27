@@ -448,6 +448,7 @@ import {
   getDocs,
   getDoc,
   query,
+  where,
   orderBy,
   addDoc,
   onSnapshot,
@@ -910,7 +911,8 @@ async function loadRecentChats() {
     console.error(err);
   }
 }
-\n/* Cleanup previous chat listeners */
+
+/* Cleanup previous chat listeners */
 function cleanupChat() {
   if (unsubscribeMessages) unsubscribeMessages();
   if (unsubscribeFriend) unsubscribeFriend();
@@ -1045,7 +1047,8 @@ function openChat(friend) {
 $("imageInput").addEventListener("change", async () => {
   const file = $("imageInput").files[0];
   if (!file) {
-    clearSelectedImage();\n    await loadRecentChats();
+    clearSelectedImage();
+    await loadRecentChats();
     return;
   }
   try {
@@ -1058,7 +1061,8 @@ $("imageInput").addEventListener("change", async () => {
     $("imagePreviewName").textContent = file.name;
     $("imagePreviewWrap").classList.remove("hidden");
   } catch (err) {
-    clearSelectedImage();\n    await loadRecentChats();
+    clearSelectedImage();
+    await loadRecentChats();
     alert(friendlyError(err));
   }
 });
@@ -1105,7 +1109,8 @@ $("messageForm").addEventListener("submit", async e => {
       collection(db, "chats", chatId, "messages"),
       payload
     );
-    clearSelectedImage();\n    await loadRecentChats();
+    clearSelectedImage();
+    await loadRecentChats();
   } catch (err) {
     alert("Message send nahi hua: " + friendlyError(err));
     $("messageInput").value = oldText;
