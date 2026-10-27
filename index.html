@@ -756,116 +756,79 @@ $("signupForm").addEventListener("submit", async e => {
 /* Settings and logout */
 $("settingsLogoutBtn").addEventListener("click", async () => { $("profileModal").classList.add("hidden"); await signOut(auth); });
 
-/* Load registered users and live chat activity */
-let messageActivity = new Map();
-let activityUnsubscribers = [];
-
-function startActivityListeners() {
-  activityUnsubscribers.forEach(unsub => unsub());
-  activityUnsubscribers = [];
-  messageActivity.clear();
-  if (!currentUser) return;
-
-  const refreshActivity = snapshots => {
-    snapshots.forEach(snapshot => {
-      snapshot.docChanges().forEach(change => {
-        const msg = change.doc.data();
-        const chatId = change.doc.ref.parent.parent?.id;
-        if (!chatId || !msg.senderId || !msg.receiverId) return;
-        const entry = messageActivity.get(chatId) || { latest: null, unread: 0, messages: new Map() };
-        if (change.type === "removed") entry.messages.delete(change.doc.id);
-        else entry.messages.set(change.doc.id, msg);
-        const list = [...entry.messages.values()].sort((a,b) =>
-          (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
-        entry.latest = list[list.length - 1] || null;
-        entry.unread = list.filter(m => m.receiverId === currentUser.uid && !m.readAt).length;
-        messageActivity.set(chatId, entry);
-      });
-    });
-    renderUsers();
-  };
-
-  activityUnsubscribers.push(onSnapshot(
-    query(collectionGroup(db, "messages"), where("senderId", "==", currentUser.uid)),
-    refreshActivity, console.error
-  ));
-  activityUnsubscribers.push(onSnapshot(
-    query(collectionGroup(db, "messages"), where("receiverId", "==", currentUser.uid)),
-    refreshActivity, console.error
-  ));
-}
-
-
+/* Load registered users */
 async function loadUsers() {
   if (!currentUser) return;
+
   try {
-    const snapshot = await getDocs(collection(db, "users"));
-    allUsers = snapshot.docs.map(d => d.data()).filter(u => u.uid && u.uid !== currentUser.uid && u.name);
-    startActivityListeners();
+    const snapshot = await getDocs(
+      collection(db, "users")
+    );
+
+    allUsers = snapshot.docs
+      .map(d => d.data())
+      .filter(u =>
+        u.uid &&
+        u.uid !== currentUser.uid &&
+        u.name
+      );
+
     renderUsers();
+
   } catch (err) {
-    $("userList").innerHTML = `<div class="empty">${friendlyError(err)}</div>`;
+    $("userList").innerHTML =
+      `<div class="empty">${friendlyError(err)}</div>`;
   }
 }
 
 $("searchUsers").addEventListener("input", renderUsers);
 
-function messagePreview(message) {
-  if (!message) return "Start a conversation";
-  if (message.type === "image") return "📷 Photo";
-  if (message.type === "video") return "🎬 Video";
-  if (message.type === "file") return "📎 " + (message.fileName || "File");
-  return message.text || "Message";
-}
-
-
+/* Search and render friends */
 function renderUsers() {
-  const term = $("searchUsers").value.trim().toLowerCase();
-  $("userList").innerHTML = "";
-  const users = allUsers.filter(u => (u.name || "").toLowerCase().includes(term));
-  users.sort((a,b) => {
-    const aa = messageActivity.get(conversationId(currentUser.uid, a.uid));
-    const bb = messageActivity.get(conversationId(currentUser.uid, b.uid));
-    const at = aa?.latest?.createdAt?.toMillis?.() || 0;
-    const bt = bb?.latest?.createdAt?.toMillis?.() || 0;
-    return bt - at || a.name.localeCompare(b.name);
-  });
+  const term = $("searchUsers").value
+    .trim()
+    .toLowerCase();
 
-  if (!users.length) {
-    $("userList").innerHTML = '<div class="empty">No matching users found.</div>';
+  $("userList").innerHTML = "";
+
+  if (!term) {
     return;
   }
 
-  users.forEach(u => {
-    const activity = messageActivity.get(conversationId(currentUser.uid, u.uid));
+  const filtered = allUsers.filter(u =>
+    (u.name || "").toLowerCase().includes(term)
+  );
+
+  if (!filtered.length) {
+    $("userList").innerHTML =
+      '<div class="empty">No matching users found.</div>';
+    return;
+  }
+
+  filtered.sort((a,b) =>
+    a.name.localeCompare(b.name)
+  );
+
+  filtered.forEach(u => {
     const button = document.createElement("button");
-    button.className = "person" + (selectedUser?.uid === u.uid ? " active" : "");
+
+    button.className = "person";
 
     const avatar = document.createElement("div");
     avatar.className = "avatar";
     renderAvatar(avatar, u.name, u.photoData || "");
 
-    const details = document.createElement("div");
-    details.style.cssText = "flex:1;min-width:0";
     const name = document.createElement("div");
     name.textContent = u.name;
-    name.style.cssText = "font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
-    const preview = document.createElement("div");
-    preview.textContent = messagePreview(activity?.latest);
-    preview.style.cssText = "font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px";
-    details.append(name, preview);
-    button.append(avatar, details);
 
-    if (activity?.unread) {
-      const badge = document.createElement("span");
-      badge.textContent = activity.unread > 99 ? "99+" : String(activity.unread);
-      badge.style.cssText = "flex-shrink:0;background:#6577ff;color:#fff;font-size:11px;font-weight:bold;min-width:21px;height:21px;border-radius:12px;display:grid;place-items:center;padding:0 5px";
-      button.appendChild(badge);
-    }
+    button.append(avatar, name);
+
     button.addEventListener("click", () => openChat(u));
+
     $("userList").appendChild(button);
   });
 }
+
 
 
 // Profile editing
@@ -930,10 +893,7 @@ $("saveProfileBtn").addEventListener("click", async () => {
 
 /* Cleanup previous chat listeners */
 function cleanupChat() {
-  activityUnsubscribers.forEach(unsub => unsub());
-  activityUnsubscribers = [];
-  messageActivity.clear();
-  if (unsubscribeMessages unsubscribeMessages();
+  if (unsubscribeMessages) unsubscribeMessages();
   if (unsubscribeFriend) unsubscribeFriend();
 
   unsubscribeMessages = null;
@@ -1041,8 +1001,6 @@ function openChat(friend) {
             doc(db, "chats", chatId, "messages", item.id),
             { readAt: serverTimestamp() }
           ).catch(console.error);
-          // Update the unread badge/list as soon as the read status changes.
-          setTimeout(renderUsers, 0);
         }
       });
 
