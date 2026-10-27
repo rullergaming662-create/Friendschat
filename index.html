@@ -87,6 +87,13 @@ button {
 .auth-card label { display:block; margin-top:8px; color:var(--muted); font-size:14px; }
 .auth-card input[type="file"] { padding:10px; }
 .auth-note { color:var(--muted); font-size:13px; margin:8px 0; }
+.auth-tabs { display:flex; gap:8px; padding:5px; background:#0e1422; border:1px solid var(--line); border-radius:13px; margin-bottom:18px; }
+.auth-tab { flex:1; background:transparent; color:var(--muted); font-weight:700; border-radius:9px; }
+.auth-tab.active { background:var(--primary); color:#fff; box-shadow:0 3px 12px #6577ff44; }
+.auth-form { display:none; }
+.auth-form.active { display:block; }
+.auth-card { margin:22px auto; }
+.profile-icon { background:linear-gradient(135deg,#8b5cf6,#4f7cff); color:#fff; border-radius:14px; width:48px; height:48px; padding:0; font-size:20px; box-shadow:0 4px 14px #6577ff44; }
 
 .error {
   color:#ff7070;
@@ -294,34 +301,32 @@ button {
 </header>
 
 <div class="card auth-card">
-  <h2>Sign Up 👋</h2>
-  <p>Create your FriendChat account to start chatting.</p>
+  <div class="auth-tabs" role="tablist" aria-label="Account access">
+    <button id="showSignup" class="auth-tab active" type="button" role="tab" aria-selected="true">Sign Up</button>
+    <button id="showSignin" class="auth-tab" type="button" role="tab" aria-selected="false">Sign In</button>
+  </div>
 
-  <form id="signupForm">
+  <form id="signupForm" class="auth-form active">
+    <h2>Sign Up 👋</h2>
+    <p>Create your FriendChat account to start chatting.</p>
     <label for="signupPhoto">Profile photo (optional)</label>
     <input id="signupPhoto" type="file" accept="image/*">
-
     <input id="signupName" placeholder="Your name" autocomplete="name" required minlength="2">
     <input id="signupEmail" type="email" placeholder="Email address" autocomplete="email" required>
     <input id="signupPassword" type="password" placeholder="Password (minimum 6 characters)" autocomplete="new-password" minlength="6" required>
-
-    <button class="primary full" type="submit">Sign Up</button>
+    <button class="primary full" type="submit">Create Account</button>
     <div id="signupError" class="error" aria-live="polite"></div>
   </form>
-</div>
 
-<div class="card auth-card">
-  <h2>Sign In</h2>
-  <p>Already have an account? Sign in below.</p>
-
-  <form id="signinForm">
+  <form id="signinForm" class="auth-form">
+    <h2>Welcome Back</h2>
+    <p>Sign in to continue chatting.</p>
     <input id="signinEmail" type="email" placeholder="Email address" autocomplete="email" required>
     <input id="signinPassword" type="password" placeholder="Password" autocomplete="current-password" required>
     <button class="primary full" type="submit">Sign In</button>
     <div id="signinError" class="error" aria-live="polite"></div>
   </form>
 </div>
-
 </section>
 
 <section id="workspace" class="hidden">
@@ -344,8 +349,7 @@ button {
 <div class="me">
   <div class="avatar" id="myAvatar">Y</div>
   <div style="flex:1;min-width:0"><div id="myName">You</div><small style="color:var(--muted)">Your profile</small></div>
-  <button id="editProfileBtn" class="profile-icon" title="Edit profile" aria-label="Edit profile">✎</button>
-  <button id="refreshUsers" class="secondary" title="Refresh users">↻</button>
+  <button id="editProfileBtn" class="profile-icon" title="Profile settings" aria-label="Profile settings">⚙</button>
 </div>
 
 <div class="search">
@@ -355,12 +359,10 @@ button {
 
 <div id="recentChatsWrap" style="margin-top:18px">
   <div class="section-title">Recent chats</div>
-  <div id="recentChats" class="recent-list"><div class="empty">Your recent chats will appear here.</div></div>
+  <div id="recentChats" class="recent-list"></div>
 </div>
 
-<div id="userList" class="user-list">
-  <div class="empty">Search a friend by name.</div>
-</div>
+<div id="userList" class="user-list"></div>
 
 </aside>
 
@@ -658,8 +660,24 @@ onAuthStateChanged(auth, async user => {
     }
   } else {
     cleanupChat();
+    setAuthMode("signin");
   }
 });
+
+// Show only the selected authentication form.
+function setAuthMode(mode) {
+  const signup = mode === "signup";
+  $("signupForm").classList.toggle("active", signup);
+  $("signinForm").classList.toggle("active", !signup);
+  $("showSignup").classList.toggle("active", signup);
+  $("showSignin").classList.toggle("active", !signup);
+  $("showSignup").setAttribute("aria-selected", String(signup));
+  $("showSignin").setAttribute("aria-selected", String(!signup));
+  showError("signupError", "");
+  showError("signinError", "");
+}
+$("showSignup").addEventListener("click", () => setAuthMode("signup"));
+$("showSignin").addEventListener("click", () => setAuthMode("signin"));
 
 /* Sign in: email and password only */
 $("signinForm").addEventListener("submit", async e => {
@@ -752,8 +770,6 @@ async function loadUsers() {
   }
 }
 
-$("refreshUsers").addEventListener("click", loadUsers);
-
 $("searchUsers").addEventListener("input", renderUsers);
 
 /* Search and render friends */
@@ -765,8 +781,6 @@ function renderUsers() {
   $("userList").innerHTML = "";
 
   if (!term) {
-    $("userList").innerHTML =
-      '<div class="empty">Type a friend name to search.</div>';
     return;
   }
 
@@ -878,7 +892,6 @@ async function loadRecentChats() {
     const wrap = $("recentChats");
     wrap.replaceChildren();
     if (!entries.length) {
-      wrap.innerHTML='<div class="empty">No chats yet. Search a friend below.</div>';
       return;
     }
     entries.forEach(entry => {
