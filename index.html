@@ -83,10 +83,17 @@ button {
 }
 
 .full { width:100%;margin-top:10px; }
+
 .auth-card h2 { margin-top:0; }
-.auth-card label { display:block; margin-top:8px; color:var(--muted); font-size:14px; }
+
+.auth-card label {
+  display:block;
+  margin-top:8px;
+  color:var(--muted);
+  font-size:14px;
+}
+
 .auth-card input[type="file"] { padding:10px; }
-.auth-note { color:var(--muted); font-size:13px; margin:8px 0; }
 
 .error {
   color:#ff7070;
@@ -151,6 +158,7 @@ button {
   display:grid;
   place-items:center;
   font-weight:bold;
+  overflow:hidden;
 }
 
 .chat {
@@ -208,7 +216,52 @@ button {
   background:var(--panel);
 }
 
-.composer input { flex:1;min-width:0; }
+.composer input {
+  flex:1;
+  min-width:0;
+}
+
+.attach-button {
+  display:grid;
+  place-items:center;
+  min-width:44px;
+  font-size:20px;
+  background:#27314b;
+  color:white;
+}
+
+.image-preview-wrap {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 12px;
+  background:var(--panel);
+  border-top:1px solid var(--line);
+}
+
+.image-preview {
+  max-width:100px;
+  max-height:80px;
+  object-fit:cover;
+  border-radius:8px;
+}
+
+.image-message {
+  display:block;
+  max-width:min(100%,320px);
+  max-height:360px;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  border-radius:9px;
+  cursor:pointer;
+}
+
+.image-caption {
+  margin-top:7px;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
 
 .empty {
   text-align:center;
@@ -285,9 +338,7 @@ button {
     <div class="sub">Private chats with your friends</div>
   </div>
 
-  <button id="logoutBtn" class="secondary">
-    Sign out
-  </button>
+  <button id="logoutBtn" class="secondary">Sign out</button>
 </header>
 
 <div id="main">
@@ -301,8 +352,7 @@ button {
 </div>
 
 <div class="search">
-  <input id="searchUsers"
-    placeholder="Search friend by name">
+  <input id="searchUsers" placeholder="Search friend by name">
 </div>
 
 <div id="userList" class="user-list">
@@ -329,13 +379,21 @@ button {
 
 <div id="messages" class="messages"></div>
 
+<div id="imagePreviewWrap" class="image-preview-wrap hidden">
+  <img id="imagePreview" class="image-preview" alt="Selected photo preview">
+  <div id="imagePreviewName" style="flex:1;min-width:0;overflow-wrap:anywhere"></div>
+  <button id="removeImageBtn" type="button" class="secondary" aria-label="Remove selected photo">✕</button>
+</div>
+
 <form id="messageForm" class="composer">
+  <label for="imageInput" class="attach-button" title="Share a photo" aria-label="Share a photo">📷</label>
+  <input id="imageInput" type="file" accept="image/*" hidden>
+
   <input id="messageInput"
     type="text"
     maxlength="4000"
-    placeholder="Type a message..."
-    autocomplete="off"
-    required>
+    placeholder="Type a message or caption..."
+    autocomplete="off">
 
   <button class="primary" type="submit">➤</button>
 </form>
@@ -394,13 +452,14 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Keep the user signed in on this device/browser until they sign out.
+// Keep the user signed in until they sign out.
 const authPersistenceReady = setPersistence(auth, browserLocalPersistence);
 
 const $ = id => document.getElementById(id);
 
 let currentUser = null;
 let selectedUser = null;
+let selectedImageData = "";
 let allUsers = [];
 
 let unsubscribeMessages = null;
@@ -415,6 +474,7 @@ function showError(elementId, message) {
 
 function renderAvatar(element, name, photoData) {
   element.replaceChildren();
+
   if (photoData) {
     const img = document.createElement("img");
     img.src = photoData;
@@ -429,39 +489,96 @@ function renderAvatar(element, name, photoData) {
   }
 }
 
-
-// Resize/compress the optional photo before saving it in the Firestore profile.
-// This does not use Firebase Storage.
+// Compress profile photos before storing them in Firestore.
 async function compressPhoto(file) {
   if (!file) return "";
+
   if (!file.type.startsWith("image/")) {
     throw new Error("Please select an image file.");
   }
+
   const dataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = () => reject(new Error("Could not read the selected photo."));
     reader.readAsDataURL(file);
   });
+
   const image = await new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error("Could not open the selected photo."));
     img.src = dataUrl;
   });
+
   const maxSide = 256;
   const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(image.width * scale));
   canvas.height = Math.max(1, Math.round(image.height * scale));
+
   const context = canvas.getContext("2d");
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
   const compressed = canvas.toDataURL("image/jpeg", 0.65);
-  // Keep the Firestore profile document comfortably below its 1 MiB limit.
+
   if (compressed.length > 180000) {
     throw new Error("Photo is still too large. Please choose a smaller image.");
   }
+
   return compressed;
+}
+
+// Compress chat images to fit within Firestore's document size limit.
+async function compressSharedImage(file) {
+  if (!file || !file.type.startsWith("image/")) {
+    throw new Error("Please choose a valid image file.");
+  }
+
+  const source = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Could not read the selected image."));
+    reader.readAsDataURL(file);
+  });
+
+  const image = await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Could not open the selected image."));
+    img.src = source;
+  });
+
+  const maxSide = 1280;
+  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+
+  const context = canvas.getContext("2d");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  let result = canvas.toDataURL("image/jpeg", 0.72);
+
+  if (result.length > 750000) {
+    result = canvas.toDataURL("image/jpeg", 0.48);
+  }
+
+  if (result.length > 850000) {
+    throw new Error("Image is too large after compression. Please select a smaller photo.");
+  }
+
+  return result;
+}
+
+function clearSelectedImage() {
+  selectedImageData = "";
+  $("imageInput").value = "";
+  $("imagePreview").removeAttribute("src");
+  $("imagePreviewName").textContent = "";
+  $("imagePreviewWrap").classList.add("hidden");
 }
 
 function friendlyError(err) {
@@ -504,12 +621,15 @@ async function saveProfile(user, name, photoData = "") {
     name: name,
     updatedAt: serverTimestamp()
   };
-  // Only write photoData when a new optional photo was selected.
-  if (photoData) profile.photoData = photoData;
+
+  if (photoData) {
+    profile.photoData = photoData;
+  }
+
   await setDoc(doc(db, "users", user.uid), profile, { merge:true });
 }
 
-/* Authentication */
+/* Authentication state */
 onAuthStateChanged(auth, async user => {
   currentUser = user;
 
@@ -519,14 +639,18 @@ onAuthStateChanged(auth, async user => {
   if (user) {
     try {
       await authPersistenceReady;
+
       const profileSnap = await getDoc(doc(db, "users", user.uid));
       const profile = profileSnap.exists() ? profileSnap.data() : {};
+
       const name = profile.name || user.displayName || user.email.split("@")[0];
+
       $("myName").textContent = name;
       renderAvatar($("myAvatar"), name, profile.photoData || "");
 
       await saveProfile(user, name);
       await loadUsers();
+
     } catch (err) {
       showError("signinError", friendlyError(err));
       console.error(err);
@@ -536,23 +660,26 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-/* Sign in: email and password only */
+/* Sign in using email and password */
 $("signinForm").addEventListener("submit", async e => {
   e.preventDefault();
   showError("signinError", "");
+
   try {
     await authPersistenceReady;
+
     await signInWithEmailAndPassword(
       auth,
       $("signinEmail").value.trim(),
       $("signinPassword").value
     );
+
   } catch (err) {
     showError("signinError", friendlyError(err));
   }
 });
 
-/* Sign up: optional photo, name, email, password */
+/* Sign up: optional profile photo, name, email, password */
 $("signupForm").addEventListener("submit", async e => {
   e.preventDefault();
   showError("signupError", "");
@@ -566,28 +693,46 @@ $("signupForm").addEventListener("submit", async e => {
     showError("signupError", "Enter a name with at least 2 characters.");
     return;
   }
+
   if (!email || password.length < 6) {
     showError("signupError", "Enter a valid email and password (minimum 6 characters).");
     return;
   }
 
-  let credential;
   try {
     await authPersistenceReady;
+
     const photoData = await compressPhoto(photoFile);
-    credential = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(credential.user, { displayName: name });
+
+    const credential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    await updateProfile(credential.user, {
+      displayName: name
+    });
 
     const nameKey = name.toLowerCase();
     const nameRef = doc(db, "usernames", nameKey);
+
     await runTransaction(db, async transaction => {
       const existing = await transaction.get(nameRef);
-      if (existing.exists()) throw new Error("NAME_TAKEN");
-      transaction.set(nameRef, { uid: credential.user.uid, name });
+
+      if (existing.exists()) {
+        throw new Error("NAME_TAKEN");
+      }
+
+      transaction.set(nameRef, {
+        uid: credential.user.uid,
+        name: name
+      });
     });
 
     await saveProfile(credential.user, name, photoData);
     showError("signupError", "");
+
   } catch (err) {
     if (err.message === "NAME_TAKEN") {
       showError("signupError", "This name is already registered. Please choose another name.");
@@ -602,14 +747,12 @@ $("logoutBtn").addEventListener("click", async () => {
   await signOut(auth);
 });
 
-/* Load registered users */
+/* Load users */
 async function loadUsers() {
   if (!currentUser) return;
 
   try {
-    const snapshot = await getDocs(
-      collection(db, "users")
-    );
+    const snapshot = await getDocs(collection(db, "users"));
 
     allUsers = snapshot.docs
       .map(d => d.data())
@@ -628,14 +771,11 @@ async function loadUsers() {
 }
 
 $("refreshUsers").addEventListener("click", loadUsers);
-
 $("searchUsers").addEventListener("input", renderUsers);
 
-/* Search and render friends */
+/* Search and render users */
 function renderUsers() {
-  const term = $("searchUsers").value
-    .trim()
-    .toLowerCase();
+  const term = $("searchUsers").value.trim().toLowerCase();
 
   $("userList").innerHTML = "";
 
@@ -655,13 +795,10 @@ function renderUsers() {
     return;
   }
 
-  filtered.sort((a,b) =>
-    a.name.localeCompare(b.name)
-  );
+  filtered.sort((a,b) => a.name.localeCompare(b.name));
 
   filtered.forEach(u => {
     const button = document.createElement("button");
-
     button.className = "person";
 
     const avatar = document.createElement("div");
@@ -672,14 +809,13 @@ function renderUsers() {
     name.textContent = u.name;
 
     button.append(avatar, name);
-
     button.addEventListener("click", () => openChat(u));
 
     $("userList").appendChild(button);
   });
 }
 
-/* Cleanup previous chat listeners */
+/* Cleanup chat listeners */
 function cleanupChat() {
   if (unsubscribeMessages) unsubscribeMessages();
   if (unsubscribeFriend) unsubscribeFriend();
@@ -689,7 +825,7 @@ function cleanupChat() {
   selectedUser = null;
 }
 
-/* Open conversation */
+/* Open chat */
 function openChat(friend) {
   selectedUser = friend;
 
@@ -697,7 +833,6 @@ function openChat(friend) {
   $("activeChat").classList.remove("hidden");
 
   $("friendName").textContent = friend.name;
-
   renderAvatar($("friendAvatar"), friend.name, friend.photoData || "");
 
   $("sidebar").classList.add("chat-open");
@@ -732,21 +867,52 @@ function openChat(friend) {
             ? "mine"
             : "theirs");
 
-        const text = document.createElement("div");
-        text.textContent = message.text || "";
+        // Render shared image messages.
+        if (message.type === "image" && message.imageData) {
+          const image = document.createElement("img");
 
-        bubble.appendChild(text);
+          image.className = "image-message";
+          image.src = message.imageData;
+          image.alt = "Shared photo";
+          image.loading = "lazy";
+
+          image.addEventListener("click", () => {
+            const viewer = window.open();
+
+            if (viewer) {
+              viewer.document.write(
+                `<title>Shared photo</title>
+                 <img src="${message.imageData}"
+                 style="max-width:100%;height:auto;display:block;margin:auto">`
+              );
+              viewer.document.close();
+            }
+          });
+
+          bubble.appendChild(image);
+
+          if (message.text) {
+            const caption = document.createElement("div");
+            caption.className = "image-caption";
+            caption.textContent = message.text;
+            bubble.appendChild(caption);
+          }
+
+        } else {
+          const text = document.createElement("div");
+          text.textContent = message.text || "";
+          bubble.appendChild(text);
+        }
 
         const time = document.createElement("div");
         time.className = "time";
 
         time.textContent =
           message.createdAt?.toDate
-            ? message.createdAt.toDate()
-                .toLocaleTimeString([], {
-                  hour:"2-digit",
-                  minute:"2-digit"
-                })
+            ? message.createdAt.toDate().toLocaleTimeString([], {
+                hour:"2-digit",
+                minute:"2-digit"
+              })
             : "Sending...";
 
         if (message.senderId === currentUser.uid) {
@@ -764,9 +930,7 @@ function openChat(friend) {
         bubble.appendChild(time);
         $("messages").appendChild(bubble);
 
-        /*
-         * Mark received messages as read.
-         */
+        // Mark received messages as read.
         if (
           message.senderId !== currentUser.uid &&
           message.receiverId === currentUser.uid &&
@@ -779,9 +943,9 @@ function openChat(friend) {
         }
       });
 
-      $("messages").scrollTop =
-        $("messages").scrollHeight;
+      $("messages").scrollTop = $("messages").scrollHeight;
     },
+
     err => {
       $("messages").innerHTML =
         `<div class="empty">${friendlyError(err)}</div>`;
@@ -789,19 +953,49 @@ function openChat(friend) {
   );
 }
 
+/* Choose a photo */
+$("imageInput").addEventListener("change", async () => {
+  const file = $("imageInput").files[0];
+
+  if (!file) {
+    clearSelectedImage();
+    return;
+  }
+
+  try {
+    if (file.size > 12 * 1024 * 1024) {
+      throw new Error("Please choose an image smaller than 12 MB.");
+    }
+
+    selectedImageData = await compressSharedImage(file);
+
+    $("imagePreview").src = selectedImageData;
+    $("imagePreviewName").textContent = file.name;
+    $("imagePreviewWrap").classList.remove("hidden");
+
+  } catch (err) {
+    clearSelectedImage();
+    alert(friendlyError(err));
+  }
+});
+
+/* Remove selected photo */
+$("removeImageBtn").addEventListener("click", clearSelectedImage);
+
 /* Back to contacts on mobile */
 $("backBtn").addEventListener("click", () => {
   $("sidebar").classList.remove("chat-open");
   $("chatPanel").classList.remove("chat-open");
 });
 
-/* Send message */
+/* Send text message, photo, or photo with caption */
 $("messageForm").addEventListener("submit", async e => {
   e.preventDefault();
 
   const text = $("messageInput").value.trim();
+  const imageData = selectedImageData;
 
-  if (!text || !currentUser || !selectedUser) {
+  if ((!text && !imageData) || !currentUser || !selectedUser) {
     return;
   }
 
@@ -810,24 +1004,33 @@ $("messageForm").addEventListener("submit", async e => {
     selectedUser.uid
   );
 
+  const payload = {
+    type: imageData ? "image" : "text",
+    text: text,
+    senderId: currentUser.uid,
+    receiverId: selectedUser.uid,
+    createdAt: serverTimestamp(),
+    readAt: null
+  };
+
+  if (imageData) {
+    payload.imageData = imageData;
+  }
+
+  const oldText = $("messageInput").value;
   $("messageInput").value = "";
 
   try {
     await addDoc(
       collection(db, "chats", chatId, "messages"),
-      {
-        type:"text",
-        text:text,
-        senderId:currentUser.uid,
-        receiverId:selectedUser.uid,
-        createdAt:serverTimestamp(),
-        readAt:null
-      }
+      payload
     );
+
+    clearSelectedImage();
 
   } catch (err) {
     alert("Message send nahi hua: " + friendlyError(err));
-    $("messageInput").value = text;
+    $("messageInput").value = oldText;
   }
 });
 
