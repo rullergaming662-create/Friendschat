@@ -946,6 +946,21 @@ function openChat(friend) {
       snapshot.forEach(item => {
         const message = item.data();
 
+        // When a message arrives, save this conversation in the logged-in
+        // receiver's own Recent Chats document (never write another user's doc).
+        if (message.receiverId === currentUser.uid && message.senderId) {
+          setDoc(
+            doc(db, "users", currentUser.uid, "recentChats", message.senderId),
+            {
+              peerId: message.senderId,
+              text: message.type === "image" ? "📷 Photo" : (message.text || ""),
+              type: message.type || "text",
+              updatedAt: message.createdAt || serverTimestamp()
+            },
+            { merge: true }
+          ).catch(err => console.error("Could not save incoming recent chat:", err));
+        }
+
         const bubble = document.createElement("div");
 
         bubble.className =
@@ -1095,14 +1110,23 @@ $("messageForm").addEventListener("submit", async e => {
 
   try {
     await addDoc(collection(db, "chats", chatId, "messages"), payload);
-    // Save a recent-chat entry for both participants.
-    const preview = imageData ? "📷 Photo" : text;
-    const recentData = { text: preview, type: imageData ? "image" : "text", updatedAt: serverTimestamp() };
-    await Promise.all([
-      setDoc(doc(db,"users",currentUser.uid,"recentChats",selectedUser.uid), { ...recentData, peerId:selectedUser.uid }, {merge:true}),
-      setDoc(doc(db,"users",selectedUser.uid,"recentChats",currentUser.uid), { ...recentData, peerId:currentUser.uid }, {merge:true})
-    ]);
     clearSelectedImage();
+
+    // Save Recent Chats separately so a recent-list permission issue
+    // cannot falsely report that the actual message failed to send.
+    const preview = imageData ? "📷 Photo" : text;
+    const recentData = {
+      peerId: selectedUser.uid,
+      text: preview,
+      type: imageData ? "image" : "text",
+      updatedAt: serverTimestamp()
+    };
+    setDoc(
+      doc(db, "users", currentUser.uid, "recentChats", selectedUser.uid),
+      recentData,
+      { merge: true }
+    ).catch(err => console.error("Recent chat save failed:", err));
+
     await loadRecentChats();
   } catch (err) {
     alert("Message send nahi hua: " + friendlyError(err));
