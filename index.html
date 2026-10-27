@@ -866,48 +866,38 @@ $("saveProfileBtn").addEventListener("click", async () => {
   } finally { $("saveProfileBtn").disabled = false; }
 });
 
-// Display the latest conversation per friend in the recent-chat list.
+// Recent chats are stored per-user, avoiding collectionGroup query/rules issues.
 async function loadRecentChats() {
   if (!currentUser) return;
   try {
-    const [sent, received] = await Promise.all([
-      getDocs(query(collectionGroup(db,"messages"), where("senderId","==",currentUser.uid))),
-      getDocs(query(collectionGroup(db,"messages"), where("receiverId","==",currentUser.uid)))
-    ]);
-    const latest = new Map();
-    [...sent.docs,...received.docs].forEach(snap => {
-      const m = snap.data();
-      const peer = m.senderId === currentUser.uid ? m.receiverId : m.senderId;
-      if (!peer || peer === currentUser.uid) return;
-      const key = peer;
-      const ms = m.createdAt?.toMillis ? m.createdAt.toMillis() : 0;
-      if (!latest.has(key) || ms > latest.get(key).ms) latest.set(key,{peer,m,ms});
-    });
+    const snap = await getDocs(collection(db,"users",currentUser.uid,"recentChats"));
+    const entries = snap.docs.map(d => ({peer:d.id, ...d.data()}))
+      .sort((a,b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
     const users = new Map(allUsers.map(u => [u.uid,u]));
-    recentChats = [...latest.values()].sort((a,b)=>b.ms-a.ms);
-    $("recentChats").replaceChildren();
-    if (!recentChats.length) {
-      $("recentChats").innerHTML='<div class="empty">No chats yet. Search a friend below.</div>';
+    recentChats = entries;
+    const wrap = $("recentChats");
+    wrap.replaceChildren();
+    if (!entries.length) {
+      wrap.innerHTML='<div class="empty">No chats yet. Search a friend below.</div>';
       return;
     }
-    recentChats.forEach(({peer,m}) => {
-      const u = users.get(peer);
+    entries.forEach(entry => {
+      const u = users.get(entry.peer);
       if (!u) return;
-      const btn = document.createElement("button");
-      btn.className="recent-person";
+      const btn=document.createElement("button"); btn.className="recent-person";
       const avatar=document.createElement("div"); avatar.className="avatar";
       renderAvatar(avatar,u.name,u.photoData||"");
-      const meta=document.createElement("div");meta.className="recent-meta";
-      const name=document.createElement("div");name.textContent=u.name;
-      const last=document.createElement("div");last.className="recent-last";
-      last.textContent=m.type==="image" ? "📷 Photo" : (m.text||"Message");
-      meta.append(name,last);btn.append(avatar,meta);
+      const meta=document.createElement("div"); meta.className="recent-meta";
+      const name=document.createElement("div"); name.textContent=u.name;
+      const last=document.createElement("div"); last.className="recent-last";
+      last.textContent=entry.type==="image" ? "📷 Photo" : (entry.text||"Message");
+      meta.append(name,last); btn.append(avatar,meta);
       btn.addEventListener("click",()=>openChat(u));
-      $("recentChats").appendChild(btn);
+      wrap.appendChild(btn);
     });
   } catch(err) {
-    $("recentChats").innerHTML='<div class="empty">Recent chats unavailable. Check Firestore Rules.</div>';
-    console.error(err);
+    $("recentChats").innerHTML='<div class="empty">Recent chats could not load: '+friendlyError(err)+'</div>';
+    console.error("Recent chats error:",err);
   }
 }
 
@@ -1104,10 +1094,14 @@ $("messageForm").addEventListener("submit", async e => {
   $("messageInput").value = "";
 
   try {
-    await addDoc(
-      collection(db, "chats", chatId, "messages"),
-      payload
-    );
+    await addDoc(collection(db, "chats", chatId, "messages"), payload);
+    // Save a recent-chat entry for both participants.
+    const preview = imageData ? "📷 Photo" : text;
+    const recentData = { text: preview, type: imageData ? "image" : "text", updatedAt: serverTimestamp() };
+    await Promise.all([
+      setDoc(doc(db,"users",currentUser.uid,"recentChats",selectedUser.uid), { ...recentData, peerId:selectedUser.uid }, {merge:true}),
+      setDoc(doc(db,"users",selectedUser.uid,"recentChats",currentUser.uid), { ...recentData, peerId:currentUser.uid }, {merge:true})
+    ]);
     clearSelectedImage();
     await loadRecentChats();
   } catch (err) {
