@@ -341,7 +341,6 @@ button {
     <div class="sub">Private chats with your friends</div>
   </div>
 
-  <button id="settingsBtn" class="secondary" aria-label="Settings">⚙ Settings</button>
 </header>
 
 <div id="main">
@@ -355,14 +354,8 @@ button {
 </div>
 
 <div class="search">
-  <button id="secretChatBtn" class="secondary full" type="button">🔒 Secret Chat</button>
   <input id="searchUsers"
     placeholder="Search friend by name">
-</div>
-
-<div id="recentChatsWrap" style="margin-top:18px">
-  <div class="section-title">Recent chats</div>
-  <div id="recentChats" class="recent-list"></div>
 </div>
 
 <div id="userList" class="user-list"></div>
@@ -487,8 +480,6 @@ let selectedUser = null;
 let selectedImageFile = null;
 let selectedImageData = "";
 let allUsers = [];
-let recentChats = [];
-let secretChatMode = false;
 
 let unsubscribeMessages = null;
 let unsubscribeFriend = null;
@@ -629,8 +620,8 @@ function friendlyError(err) {
     "Something went wrong.";
 }
 
-function conversationId(uid1, uid2, secret = false) {
-  return (secret ? "secret_" : "") + [uid1, uid2].sort().join("_");
+function conversationId(uid1, uid2) {
+  return [uid1, uid2].sort().join("_");
 }
 
 /* Save user profile */
@@ -663,7 +654,6 @@ onAuthStateChanged(auth, async user => {
 
       await saveProfile(user, name);
       await loadUsers();
-      await loadRecentChats();
     } catch (err) {
       showError("signinError", friendlyError(err));
       console.error(err);
@@ -751,9 +741,7 @@ $("signupForm").addEventListener("submit", async e => {
 });
 
 /* Settings and logout */
-$("settingsBtn").addEventListener("click", () => $("profileModal").classList.remove("hidden"));
 $("settingsLogoutBtn").addEventListener("click", async () => { $("profileModal").classList.add("hidden"); await signOut(auth); });
-$("secretChatBtn").addEventListener("click", () => { secretChatMode = !secretChatMode; $("secretChatBtn").classList.toggle("primary",secretChatMode); $("secretChatBtn").textContent = secretChatMode ? "🔒 Secret Chat: ON" : "🔒 Secret Chat"; $("searchUsers").placeholder = secretChatMode ? "Search friend for secret chat" : "Search friend by name"; $("searchUsers").focus(); });
 
 /* Load registered users */
 async function loadUsers() {
@@ -890,40 +878,6 @@ $("saveProfileBtn").addEventListener("click", async () => {
   } finally { $("saveProfileBtn").disabled = false; }
 });
 
-// Recent chats are stored per-user, avoiding collectionGroup query/rules issues.
-async function loadRecentChats() {
-  if (!currentUser) return;
-  try {
-    const snap = await getDocs(collection(db,"users",currentUser.uid,"recentChats"));
-    const entries = snap.docs.map(d => ({peer:d.id, ...d.data()}))
-      .sort((a,b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
-    const users = new Map(allUsers.map(u => [u.uid,u]));
-    recentChats = entries;
-    const wrap = $("recentChats");
-    wrap.replaceChildren();
-    if (!entries.length) {
-      return;
-    }
-    entries.forEach(entry => {
-      const u = users.get(entry.peer);
-      if (!u) return;
-      const btn=document.createElement("button"); btn.className="recent-person";
-      const avatar=document.createElement("div"); avatar.className="avatar";
-      renderAvatar(avatar,u.name,u.photoData||"");
-      const meta=document.createElement("div"); meta.className="recent-meta";
-      const name=document.createElement("div"); name.textContent=u.name;
-      const last=document.createElement("div"); last.className="recent-last";
-      last.textContent=entry.type==="image" ? "📷 Photo" : (entry.text||"Message");
-      meta.append(name,last); btn.append(avatar,meta);
-      btn.addEventListener("click",()=>openChat(u));
-      wrap.appendChild(btn);
-    });
-  } catch(err) {
-    $("recentChats").innerHTML='<div class="empty">Recent chats could not load: '+friendlyError(err)+'</div>';
-    console.error("Recent chats error:",err);
-  }
-}
-
 /* Cleanup previous chat listeners */
 function cleanupChat() {
   if (unsubscribeMessages) unsubscribeMessages();
@@ -951,7 +905,7 @@ function openChat(friend) {
   if (unsubscribeMessages) unsubscribeMessages();
   if (unsubscribeFriend) unsubscribeFriend();
 
-  const chatId = conversationId(currentUser.uid, friend.uid, secretChatMode);
+  const chatId = conversationId(currentUser.uid, friend.uid);
 
   const messagesQuery = query(
     collection(db, "chats", chatId, "messages"),
@@ -965,22 +919,6 @@ function openChat(friend) {
 
       snapshot.forEach(item => {
         const message = item.data();
-
-        // When a message arrives, save this conversation in the logged-in
-        // receiver's own Recent Chats document (never write another user's doc).
-        if (!chatId.startsWith("secret_") && message.receiverId === currentUser.uid && message.senderId) {
-          setDoc(
-            doc(db, "users", currentUser.uid, "recentChats", message.senderId),
-            {
-              peerId: message.senderId,
-              text: message.type === "image" ? "📷 Photo" : (message.text || ""),
-              type: message.type || "text",
-              updatedAt: message.createdAt || serverTimestamp()
-            },
-            { merge: true }
-          ).then(() => loadRecentChats())
-           .catch(err => console.error("Could not save incoming recent chat:", err));
-        }
 
         const bubble = document.createElement("div");
 
@@ -1103,7 +1041,6 @@ $("imageInput").addEventListener("change", async () => {
   const file = $("imageInput").files[0];
   if (!file) {
     clearSelectedImage();
-    await loadRecentChats();
     return;
   }
   try {
@@ -1117,7 +1054,6 @@ $("imageInput").addEventListener("change", async () => {
     $("imagePreviewWrap").classList.remove("hidden");
   } catch (err) {
     clearSelectedImage();
-    await loadRecentChats();
     alert(friendlyError(err));
   }
 });
@@ -1141,7 +1077,7 @@ $("messageForm").addEventListener("submit", async e => {
     return;
   }
 
-  const chatId = conversationId(currentUser.uid, selectedUser.uid, secretChatMode);
+  const chatId = conversationId(currentUser.uid, selectedUser.uid);
 
   const payload = {
     type: imageData ? "image" : "text",
@@ -1160,25 +1096,7 @@ $("messageForm").addEventListener("submit", async e => {
     await addDoc(collection(db, "chats", chatId, "messages"), payload);
     clearSelectedImage();
 
-    // Secret conversations are deliberately excluded from Recent Chats.
-    if (secretChatMode) { clearSelectedImage(); return; }
 
-    // Save Recent Chats separately so a recent-list permission issue
-    // cannot falsely report that the actual message failed to send.
-    const preview = imageData ? "📷 Photo" : text;
-    const recentData = {
-      peerId: selectedUser.uid,
-      text: preview,
-      type: imageData ? "image" : "text",
-      updatedAt: serverTimestamp()
-    };
-    setDoc(
-      doc(db, "users", currentUser.uid, "recentChats", selectedUser.uid),
-      recentData,
-      { merge: true }
-    ).catch(err => console.error("Recent chat save failed:", err));
-
-    await loadRecentChats();
   } catch (err) {
     alert("Message send nahi hua: " + friendlyError(err));
     $("messageInput").value = oldText;
