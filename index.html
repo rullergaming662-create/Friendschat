@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,6 +83,10 @@ button {
 }
 
 .full { width:100%;margin-top:10px; }
+.auth-card h2 { margin-top:0; }
+.auth-card label { display:block; margin-top:8px; color:var(--muted); font-size:14px; }
+.auth-card input[type="file"] { padding:10px; }
+.auth-note { color:var(--muted); font-size:13px; margin:8px 0; }
 
 .error {
   color:#ff7070;
@@ -243,35 +246,32 @@ button {
   </div>
 </header>
 
-<div class="card">
-  <h2>Welcome 👋</h2>
-  <p>Create an account or sign in to chat with friends.</p>
+<div class="card auth-card">
+  <h2>Sign Up 👋</h2>
+  <p>Create your FriendChat account to start chatting.</p>
 
-  <form id="authForm">
-    <input id="displayName"
-      placeholder="Your name (for new account)"
-      autocomplete="name">
+  <form id="signupForm">
+    <label for="signupPhoto">Profile photo (optional)</label>
+    <input id="signupPhoto" type="file" accept="image/*">
 
-    <input id="email"
-      type="email"
-      placeholder="Email address"
-      required>
+    <input id="signupName" placeholder="Your name" autocomplete="name" required minlength="2">
+    <input id="signupEmail" type="email" placeholder="Email address" autocomplete="email" required>
+    <input id="signupPassword" type="password" placeholder="Password (minimum 6 characters)" autocomplete="new-password" minlength="6" required>
 
-    <input id="password"
-      type="password"
-      placeholder="Password (minimum 6 characters)"
-      minlength="6"
-      required>
+    <button class="primary full" type="submit">Sign Up</button>
+    <div id="signupError" class="error" aria-live="polite"></div>
+  </form>
+</div>
 
-    <button class="primary full" type="submit">
-      Sign in
-    </button>
+<div class="card auth-card">
+  <h2>Sign In</h2>
+  <p>Already have an account? Sign in below.</p>
 
-    <button class="secondary full" id="signupBtn" type="button">
-      Create new account
-    </button>
-
-    <div id="authError" class="error"></div>
+  <form id="signinForm">
+    <input id="signinEmail" type="email" placeholder="Email address" autocomplete="email" required>
+    <input id="signinPassword" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button class="primary full" type="submit">Sign In</button>
+    <div id="signinError" class="error" aria-live="polite"></div>
   </form>
 </div>
 
@@ -359,7 +359,9 @@ import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
   updateProfile,
-  signOut
+  signOut,
+  setPersistence,
+  browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 import {
@@ -392,6 +394,9 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Keep the user signed in on this device/browser until they sign out.
+const authPersistenceReady = setPersistence(auth, browserLocalPersistence);
+
 const $ = id => document.getElementById(id);
 
 let currentUser = null;
@@ -404,8 +409,59 @@ let unsubscribeFriend = null;
 const authSection = $("auth");
 const workspace = $("workspace");
 
-function showError(message) {
-  $("authError").textContent = message;
+function showError(elementId, message) {
+  $(elementId).textContent = message;
+}
+
+function renderAvatar(element, name, photoData) {
+  element.replaceChildren();
+  if (photoData) {
+    const img = document.createElement("img");
+    img.src = photoData;
+    img.alt = `${name || "User"} profile photo`;
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "cover";
+    img.style.borderRadius = "50%";
+    element.appendChild(img);
+  } else {
+    element.textContent = (name || "?").charAt(0).toUpperCase();
+  }
+}
+
+
+// Resize/compress the optional photo before saving it in the Firestore profile.
+// This does not use Firebase Storage.
+async function compressPhoto(file) {
+  if (!file) return "";
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Please select an image file.");
+  }
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Could not read the selected photo."));
+    reader.readAsDataURL(file);
+  });
+  const image = await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Could not open the selected photo."));
+    img.src = dataUrl;
+  });
+  const maxSide = 256;
+  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  const context = canvas.getContext("2d");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const compressed = canvas.toDataURL("image/jpeg", 0.65);
+  // Keep the Firestore profile document comfortably below its 1 MiB limit.
+  if (compressed.length > 180000) {
+    throw new Error("Photo is still too large. Please choose a smaller image.");
+  }
+  return compressed;
 }
 
 function friendlyError(err) {
@@ -442,12 +498,15 @@ function conversationId(uid1, uid2) {
 }
 
 /* Save user profile */
-async function saveProfile(user, name) {
-  await setDoc(doc(db, "users", user.uid), {
+async function saveProfile(user, name, photoData = "") {
+  const profile = {
     uid: user.uid,
     name: name,
     updatedAt: serverTimestamp()
-  }, { merge:true });
+  };
+  // Only write photoData when a new optional photo was selected.
+  if (photoData) profile.photoData = photoData;
+  await setDoc(doc(db, "users", user.uid), profile, { merge:true });
 }
 
 /* Authentication */
@@ -458,107 +517,82 @@ onAuthStateChanged(auth, async user => {
   workspace.classList.toggle("hidden", !user);
 
   if (user) {
-    $("myName").textContent =
-      user.displayName || user.email;
-
-    $("myAvatar").textContent =
-      (user.displayName || user.email || "Y")
-      .charAt(0).toUpperCase();
-
     try {
-      await saveProfile(
-        user,
-        user.displayName || user.email.split("@")[0]
-      );
+      await authPersistenceReady;
+      const profileSnap = await getDoc(doc(db, "users", user.uid));
+      const profile = profileSnap.exists() ? profileSnap.data() : {};
+      const name = profile.name || user.displayName || user.email.split("@")[0];
+      $("myName").textContent = name;
+      renderAvatar($("myAvatar"), name, profile.photoData || "");
 
+      await saveProfile(user, name);
       await loadUsers();
     } catch (err) {
-      showError(friendlyError(err));
+      showError("signinError", friendlyError(err));
+      console.error(err);
     }
   } else {
     cleanupChat();
   }
 });
 
-/* Sign in */
-$("authForm").addEventListener("submit", async e => {
+/* Sign in: email and password only */
+$("signinForm").addEventListener("submit", async e => {
   e.preventDefault();
-  showError("");
-
+  showError("signinError", "");
   try {
+    await authPersistenceReady;
     await signInWithEmailAndPassword(
       auth,
-      $("email").value.trim(),
-      $("password").value
+      $("signinEmail").value.trim(),
+      $("signinPassword").value
     );
   } catch (err) {
-    showError(friendlyError(err));
+    showError("signinError", friendlyError(err));
   }
 });
 
-/* Create account */
-$("signupBtn").addEventListener("click", async () => {
-  showError("");
+/* Sign up: optional photo, name, email, password */
+$("signupForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  showError("signupError", "");
 
-  const name = $("displayName").value.trim()
-    .replace(/\s+/g, " ");
-
-  const email = $("email").value.trim();
-  const password = $("password").value;
+  const name = $("signupName").value.trim().replace(/\s+/g, " ");
+  const email = $("signupEmail").value.trim();
+  const password = $("signupPassword").value;
+  const photoFile = $("signupPhoto").files[0] || null;
 
   if (name.length < 2) {
-    showError("Enter a name with at least 2 characters.");
+    showError("signupError", "Enter a name with at least 2 characters.");
     return;
   }
-
   if (!email || password.length < 6) {
-    showError("Enter email and password (minimum 6 characters).");
+    showError("signupError", "Enter a valid email and password (minimum 6 characters).");
     return;
   }
-
-  const nameKey = name.toLowerCase();
 
   let credential;
-
   try {
-    /*
-     * Create Firebase Auth account FIRST.
-     * Then reserve username and create profile.
-     */
-    credential = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
+    await authPersistenceReady;
+    const photoData = await compressPhoto(photoFile);
+    credential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(credential.user, { displayName: name });
 
-    await updateProfile(credential.user, {
-      displayName: name
-    });
-
+    const nameKey = name.toLowerCase();
     const nameRef = doc(db, "usernames", nameKey);
-
     await runTransaction(db, async transaction => {
       const existing = await transaction.get(nameRef);
-
-      if (existing.exists()) {
-        throw new Error("NAME_TAKEN");
-      }
-
-      transaction.set(nameRef, {
-        uid: credential.user.uid,
-        name: name
-      });
+      if (existing.exists()) throw new Error("NAME_TAKEN");
+      transaction.set(nameRef, { uid: credential.user.uid, name });
     });
 
-    await saveProfile(credential.user, name);
-
-    showError("");
-
+    await saveProfile(credential.user, name, photoData);
+    showError("signupError", "");
   } catch (err) {
     if (err.message === "NAME_TAKEN") {
-      showError("This name is already registered.");
+      showError("signupError", "This name is already registered. Please choose another name.");
     } else {
-      showError(friendlyError(err));
+      showError("signupError", friendlyError(err));
     }
   }
 });
@@ -632,7 +666,7 @@ function renderUsers() {
 
     const avatar = document.createElement("div");
     avatar.className = "avatar";
-    avatar.textContent = u.name.charAt(0).toUpperCase();
+    renderAvatar(avatar, u.name, u.photoData || "");
 
     const name = document.createElement("div");
     name.textContent = u.name;
@@ -664,8 +698,7 @@ function openChat(friend) {
 
   $("friendName").textContent = friend.name;
 
-  $("friendAvatar").textContent =
-    friend.name.charAt(0).toUpperCase();
+  renderAvatar($("friendAvatar"), friend.name, friend.photoData || "");
 
   $("sidebar").classList.add("chat-open");
   $("chatPanel").classList.add("chat-open");
@@ -801,4 +834,4 @@ $("messageForm").addEventListener("submit", async e => {
 </script>
 
 </body>
-</html>
+  </html>
