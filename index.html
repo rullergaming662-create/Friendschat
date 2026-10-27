@@ -220,14 +220,16 @@ button {
 }
 
 .composer input { flex:1;min-width:0; }
-.attach-button {
-  display:grid;
-  place-items:center;
-  min-width:44px;
-  font-size:20px;
-  background:#27314b;
-  color:white;
-}
+.attach-wrap {position:relative;display:flex;align-items:center}
+.attach-button {display:grid;place-items:center;width:48px;height:48px;flex-shrink:0;border-radius:16px;background:linear-gradient(145deg,#8b5cf6,#4f7cff);color:white;box-shadow:0 5px 16px #6577ff44;border:1px solid #ffffff20;transition:transform .16s ease}
+.attach-button:active {transform:scale(.94)}
+.attach-button svg {width:25px;height:25px}
+.attach-menu {position:absolute;left:0;bottom:58px;width:218px;padding:8px;background:#202941;border:1px solid #394765;border-radius:17px;box-shadow:0 16px 36px #0008;z-index:30}
+.attach-option {width:100%;display:flex;align-items:center;gap:12px;padding:11px 12px;color:#edf1ff;background:transparent;border-radius:12px;text-align:left}
+.attach-option:hover,.attach-option:focus {background:#303d5b}
+.attach-option svg {width:22px;height:22px;flex-shrink:0;color:#aebaff}
+.attach-option span {font-size:14px;font-weight:600}
+
 .image-preview-wrap {
   display:flex;
   align-items:center;
@@ -387,8 +389,16 @@ button {
 </div>
 
 <form id="messageForm" class="composer">
-  <label for="imageInput" class="attach-button" title="Share a photo" aria-label="Share a photo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l1.5-2h7L17 7h3v12H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></label>
-  <input id="imageInput" type="file" accept="image/*" hidden>
+  <div class="attach-wrap">
+    <button id="attachBtn" class="attach-button" type="button" aria-label="Attach file" aria-expanded="false" title="Attach"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8.5 12.5 14.9 6.1a3.2 3.2 0 0 1 4.5 4.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.1-8.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <div id="attachMenu" class="attach-menu hidden" role="menu" aria-label="Send attachment">
+      <button class="attach-option" type="button" data-picker="photoInput" role="menuitem"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.8"/><circle cx="8.5" cy="9" r="1.5" stroke="currentColor" stroke-width="1.6"/><path d="m4 17 5-5 3 3 2-2 6 5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Photo</span></button>
+      <button class="attach-option" type="button" data-picker="videoInput" role="menuitem"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="13" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="m16 10 5-3v10l-5-3" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Video</span></button>
+      <button class="attach-option" type="button" data-picker="fileInput" role="menuitem"><svg viewBox="0 0 24 24" fill="none"><path d="M5 3h9l5 5v13H5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v6h5M8 14h8M8 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>File</span></button>
+      <button class="attach-option" type="button" data-picker="documentInput" role="menuitem"><svg viewBox="0 0 24 24" fill="none"><path d="M5 3h9l5 5v13H5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v6h5M8 14h8M8 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Document</span></button>
+    </div>
+  </div>
+  <input id="photoInput" type="file" accept="image/*" hidden><input id="videoInput" type="file" accept="video/*" hidden><input id="fileInput" type="file" hidden><input id="documentInput" type="file" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,application/pdf" hidden>
   <input id="messageInput"
     type="text"
     maxlength="4000"
@@ -479,6 +489,7 @@ let currentUser = null;
 let selectedUser = null;
 let selectedImageFile = null;
 let selectedImageData = "";
+let selectedAttachment = null;
 let allUsers = [];
 
 let unsubscribeMessages = null;
@@ -585,8 +596,10 @@ async function compressSharedImage(file) {
 function clearSelectedImage() {
   selectedImageFile = null;
   selectedImageData = "";
-  $("imageInput").value = "";
+  ["photoInput","videoInput","fileInput","documentInput"].forEach(id => { $(id).value = ""; });
   $("imagePreview").removeAttribute("src");
+  $("imagePreview").classList.remove("hidden");
+  selectedAttachment = null;
   $("imagePreviewName").textContent = "";
   $("imagePreviewWrap").classList.add("hidden");
 }
@@ -928,20 +941,15 @@ function openChat(friend) {
             ? "mine"
             : "theirs");
 
-        if (message.type === "image" && message.imageData) {
-          const image = document.createElement("img");
-          image.className = "image-message";
-          image.src = message.imageData;
-          image.alt = "Shared photo";
-          image.loading = "lazy";
-          image.addEventListener("click", () => {
-            const viewer = window.open();
-            if (viewer) {
-              viewer.document.write(`<title>Shared photo</title><img src="${message.imageData}" style="max-width:100%;height:auto;display:block;margin:auto">`);
-              viewer.document.close();
-            }
-          });
-          bubble.appendChild(image);
+        if ((message.type === "image" || message.type === "video" || message.type === "file") && message.imageData) {
+          if (message.type === "image") {
+            const image = document.createElement("img"); image.className="image-message"; image.src=message.imageData; image.alt="Shared photo"; image.loading="lazy";
+            image.addEventListener("click",()=>{const viewer=window.open();if(viewer){viewer.document.write(`<title>Shared photo</title><img src="${message.imageData}" style="max-width:100%;height:auto;display:block;margin:auto">`);viewer.document.close();}}); bubble.appendChild(image);
+          } else if (message.type === "video") {
+            const video=document.createElement("video");video.controls=true;video.preload="metadata";video.style.maxWidth="min(100%,320px)";video.style.borderRadius="9px";video.src=message.imageData;bubble.appendChild(video);
+          } else {
+            const link=document.createElement("a");link.href=message.imageData;link.download=message.fileName||"attachment";link.textContent="📄 "+(message.fileName||"Download attachment");link.style.color="#b8c5ff";link.style.display="block";link.style.padding="8px";bubble.appendChild(link);
+          }
           if (message.text) {
             const caption = document.createElement("div");
             caption.className = "image-caption";
@@ -979,36 +987,6 @@ function openChat(friend) {
         }
 
         bubble.appendChild(time);
-        // Long-press / right-click actions: react, edit or delete.
-        let pressTimer = null;
-        const showMessageActions = async () => {
-          const action = prompt("Message options: type R to react, E to edit, D to delete", "R");
-          if (!action) return;
-          const messageRef = doc(db, "chats", chatId, "messages", item.id);
-          const choice = action.trim().toLowerCase();
-          try {
-            if (choice === "r") {
-              const emoji = prompt("Enter an emoji reaction", "❤️");
-              if (emoji) await updateDoc(messageRef, { ["reactions." + currentUser.uid]: emoji.trim().slice(0,8) });
-            } else if (choice === "e") {
-              if (message.senderId !== currentUser.uid || message.type === "image") { alert("Only your text messages can be edited."); return; }
-              const edited = prompt("Edit your message", message.text || "");
-              if (edited !== null && edited.trim()) await updateDoc(messageRef, { text: edited.trim(), edited: true });
-            } else if (choice === "d") {
-              if (message.senderId !== currentUser.uid) { alert("You can delete only your own messages."); return; }
-              if (confirm("Delete this message?")) await deleteDoc(messageRef);
-            }
-          } catch (err) { alert("Could not update message: " + friendlyError(err)); }
-        };
-        bubble.addEventListener("contextmenu", e => { e.preventDefault(); showMessageActions(); });
-        bubble.addEventListener("touchstart", () => { pressTimer = setTimeout(showMessageActions, 650); }, {passive:true});
-        bubble.addEventListener("touchend", () => clearTimeout(pressTimer));
-        bubble.addEventListener("touchmove", () => clearTimeout(pressTimer));
-        if (message.reactions) {
-          const reactions = Object.values(message.reactions).filter(Boolean);
-          if (reactions.length) { const reactionLine=document.createElement("div"); reactionLine.textContent=reactions.join(" "); reactionLine.style.marginTop="5px"; bubble.appendChild(reactionLine); }
-        }
-        if (message.edited) { const editedTag=document.createElement("small"); editedTag.textContent=" edited"; editedTag.style.color="var(--muted)"; time.appendChild(editedTag); }
         $("messages").appendChild(bubble);
 
         /*
@@ -1036,28 +1014,22 @@ function openChat(friend) {
   );
 }
 
-/* Select a photo to attach to the next message */
-$("imageInput").addEventListener("change", async () => {
-  const file = $("imageInput").files[0];
-  if (!file) {
-    clearSelectedImage();
-    return;
-  }
-  try {
-    if (file.size > 12 * 1024 * 1024) {
-      throw new Error("Please choose an image smaller than 12 MB.");
-    }
-    selectedImageFile = file;
-    selectedImageData = await compressSharedImage(file);
-    $("imagePreview").src = selectedImageData;
-    $("imagePreviewName").textContent = file.name;
-    $("imagePreviewWrap").classList.remove("hidden");
-  } catch (err) {
-    clearSelectedImage();
-    alert(friendlyError(err));
-  }
-});
-
+/* Attachment picker: photo, video, file or document */
+const attachBtn = $("attachBtn"), attachMenu = $("attachMenu");
+attachBtn.addEventListener("click", () => { const open=attachMenu.classList.contains("hidden"); attachMenu.classList.toggle("hidden",!open); attachBtn.setAttribute("aria-expanded",String(open)); });
+document.addEventListener("click", e => { if(!e.target.closest(".attach-wrap")){attachMenu.classList.add("hidden");attachBtn.setAttribute("aria-expanded","false");} });
+document.querySelectorAll(".attach-option").forEach(option => option.addEventListener("click",()=>{attachMenu.classList.add("hidden");attachBtn.setAttribute("aria-expanded","false");$(option.dataset.picker).click();}));
+["photoInput","videoInput","fileInput","documentInput"].forEach(inputId => $(inputId).addEventListener("change",async()=>{
+ const file=$(inputId).files[0]; if(!file)return;
+ try {
+  if(file.size>700*1024) throw new Error("This file is too large to send in this chat. Choose a file under 700 KB.");
+  const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error("Could not read the selected file."));reader.readAsDataURL(file);});
+  const type=inputId==="photoInput"?"image":inputId==="videoInput"?"video":"file";
+  selectedAttachment={type,name:file.name,mimeType:file.type||"application/octet-stream",data:dataUrl};selectedImageFile=file;selectedImageData=dataUrl;
+  const preview=$("imagePreview");preview.classList.toggle("hidden",type!=="image");if(type==="image")preview.src=dataUrl;else preview.removeAttribute("src");
+  $("imagePreviewName").textContent=(type==="video"?"🎬 ":type==="file"?"📎 ":"📄 ")+file.name;$("imagePreviewWrap").classList.remove("hidden");
+ } catch(err){clearSelectedImage();alert(err.message||friendlyError(err));}
+}));
 $("removeImageBtn").addEventListener("click", clearSelectedImage);
 
 /* Back to contacts on mobile */
@@ -1072,6 +1044,7 @@ $("messageForm").addEventListener("submit", async e => {
 
   const text = $("messageInput").value.trim();
   const imageData = selectedImageData;
+  const attachment = selectedAttachment;
 
   if ((!text && !imageData) || !currentUser || !selectedUser) {
     return;
@@ -1080,7 +1053,7 @@ $("messageForm").addEventListener("submit", async e => {
   const chatId = conversationId(currentUser.uid, selectedUser.uid);
 
   const payload = {
-    type: imageData ? "image" : "text",
+    type: attachment ? attachment.type : (imageData ? "image" : "text"),
     text: text,
     senderId: currentUser.uid,
     receiverId: selectedUser.uid,
@@ -1088,6 +1061,7 @@ $("messageForm").addEventListener("submit", async e => {
     readAt: null
   };
   if (imageData) payload.imageData = imageData;
+  if (attachment) { payload.fileName=attachment.name; payload.mimeType=attachment.mimeType; }
 
   const oldText = $("messageInput").value;
   $("messageInput").value = "";
@@ -1107,4 +1081,3 @@ $("messageForm").addEventListener("submit", async e => {
 
 </body>
 </html>
-
