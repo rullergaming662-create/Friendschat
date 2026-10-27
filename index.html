@@ -150,6 +150,7 @@ button {
 .person.active { background:#27314b; }
 
 .avatar {
+  overflow:hidden;
   width:42px;
   height:42px;
   flex-shrink:0;
@@ -158,7 +159,10 @@ button {
   display:grid;
   place-items:center;
   font-weight:bold;
+  overflow:hidden;
+  isolation:isolate;
 }
+.avatar img { width:100%;height:100%;display:block;object-fit:cover;object-position:center;border-radius:50%; }
 
 .chat {
   flex:1;
@@ -337,9 +341,7 @@ button {
     <div class="sub">Private chats with your friends</div>
   </div>
 
-  <button id="logoutBtn" class="secondary">
-    Sign out
-  </button>
+  <button id="settingsBtn" class="secondary" aria-label="Settings">⚙ Settings</button>
 </header>
 
 <div id="main">
@@ -353,6 +355,7 @@ button {
 </div>
 
 <div class="search">
+  <button id="secretChatBtn" class="secondary full" type="button">🔒 Secret Chat</button>
   <input id="searchUsers"
     placeholder="Search friend by name">
 </div>
@@ -420,6 +423,7 @@ button {
     <input id="editName" maxlength="40" minlength="2" placeholder="Your name">
     <div id="profileError" class="error"></div>
     <button id="saveProfileBtn" class="primary full" type="button">Save changes</button>
+    <button id="settingsLogoutBtn" class="secondary full" type="button">Sign out</button>
   </div>
 </div>
 
@@ -455,6 +459,7 @@ import {
   onSnapshot,
   serverTimestamp,
   updateDoc,
+  deleteDoc,
   runTransaction
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
@@ -483,6 +488,7 @@ let selectedImageFile = null;
 let selectedImageData = "";
 let allUsers = [];
 let recentChats = [];
+let secretChatMode = false;
 
 let unsubscribeMessages = null;
 let unsubscribeFriend = null;
@@ -504,6 +510,10 @@ function renderAvatar(element, name, photoData) {
     img.style.height = "100%";
     img.style.objectFit = "cover";
     img.style.borderRadius = "50%";
+    img.style.display = "block";
+    img.style.objectFit = "cover";
+    img.style.objectPosition = "center";
+    element.style.overflow = "hidden";
     element.appendChild(img);
   } else {
     element.textContent = (name || "?").charAt(0).toUpperCase();
@@ -619,8 +629,8 @@ function friendlyError(err) {
     "Something went wrong.";
 }
 
-function conversationId(uid1, uid2) {
-  return [uid1, uid2].sort().join("_");
+function conversationId(uid1, uid2, secret = false) {
+  return (secret ? "secret_" : "") + [uid1, uid2].sort().join("_");
 }
 
 /* Save user profile */
@@ -740,10 +750,10 @@ $("signupForm").addEventListener("submit", async e => {
   }
 });
 
-/* Logout */
-$("logoutBtn").addEventListener("click", async () => {
-  await signOut(auth);
-});
+/* Settings and logout */
+$("settingsBtn").addEventListener("click", () => $("profileModal").classList.remove("hidden"));
+$("settingsLogoutBtn").addEventListener("click", async () => { $("profileModal").classList.add("hidden"); await signOut(auth); });
+$("secretChatBtn").addEventListener("click", () => { secretChatMode = !secretChatMode; $("secretChatBtn").classList.toggle("primary",secretChatMode); $("secretChatBtn").textContent = secretChatMode ? "🔒 Secret Chat: ON" : "🔒 Secret Chat"; $("searchUsers").placeholder = secretChatMode ? "Search friend for secret chat" : "Search friend by name"; $("searchUsers").focus(); });
 
 /* Load registered users */
 async function loadUsers() {
@@ -941,10 +951,7 @@ function openChat(friend) {
   if (unsubscribeMessages) unsubscribeMessages();
   if (unsubscribeFriend) unsubscribeFriend();
 
-  const chatId = conversationId(
-    currentUser.uid,
-    friend.uid
-  );
+  const chatId = conversationId(currentUser.uid, friend.uid, secretChatMode);
 
   const messagesQuery = query(
     collection(db, "chats", chatId, "messages"),
@@ -961,7 +968,7 @@ function openChat(friend) {
 
         // When a message arrives, save this conversation in the logged-in
         // receiver's own Recent Chats document (never write another user's doc).
-        if (message.receiverId === currentUser.uid && message.senderId) {
+        if (!chatId.startsWith("secret_") && message.receiverId === currentUser.uid && message.senderId) {
           setDoc(
             doc(db, "users", currentUser.uid, "recentChats", message.senderId),
             {
@@ -1034,6 +1041,36 @@ function openChat(friend) {
         }
 
         bubble.appendChild(time);
+        // Long-press / right-click actions: react, edit or delete.
+        let pressTimer = null;
+        const showMessageActions = async () => {
+          const action = prompt("Message options: type R to react, E to edit, D to delete", "R");
+          if (!action) return;
+          const messageRef = doc(db, "chats", chatId, "messages", item.id);
+          const choice = action.trim().toLowerCase();
+          try {
+            if (choice === "r") {
+              const emoji = prompt("Enter an emoji reaction", "❤️");
+              if (emoji) await updateDoc(messageRef, { ["reactions." + currentUser.uid]: emoji.trim().slice(0,8) });
+            } else if (choice === "e") {
+              if (message.senderId !== currentUser.uid || message.type === "image") { alert("Only your text messages can be edited."); return; }
+              const edited = prompt("Edit your message", message.text || "");
+              if (edited !== null && edited.trim()) await updateDoc(messageRef, { text: edited.trim(), edited: true });
+            } else if (choice === "d") {
+              if (message.senderId !== currentUser.uid) { alert("You can delete only your own messages."); return; }
+              if (confirm("Delete this message?")) await deleteDoc(messageRef);
+            }
+          } catch (err) { alert("Could not update message: " + friendlyError(err)); }
+        };
+        bubble.addEventListener("contextmenu", e => { e.preventDefault(); showMessageActions(); });
+        bubble.addEventListener("touchstart", () => { pressTimer = setTimeout(showMessageActions, 650); }, {passive:true});
+        bubble.addEventListener("touchend", () => clearTimeout(pressTimer));
+        bubble.addEventListener("touchmove", () => clearTimeout(pressTimer));
+        if (message.reactions) {
+          const reactions = Object.values(message.reactions).filter(Boolean);
+          if (reactions.length) { const reactionLine=document.createElement("div"); reactionLine.textContent=reactions.join(" "); reactionLine.style.marginTop="5px"; bubble.appendChild(reactionLine); }
+        }
+        if (message.edited) { const editedTag=document.createElement("small"); editedTag.textContent=" edited"; editedTag.style.color="var(--muted)"; time.appendChild(editedTag); }
         $("messages").appendChild(bubble);
 
         /*
@@ -1104,10 +1141,7 @@ $("messageForm").addEventListener("submit", async e => {
     return;
   }
 
-  const chatId = conversationId(
-    currentUser.uid,
-    selectedUser.uid
-  );
+  const chatId = conversationId(currentUser.uid, selectedUser.uid, secretChatMode);
 
   const payload = {
     type: imageData ? "image" : "text",
@@ -1125,6 +1159,9 @@ $("messageForm").addEventListener("submit", async e => {
   try {
     await addDoc(collection(db, "chats", chatId, "messages"), payload);
     clearSelectedImage();
+
+    // Secret conversations are deliberately excluded from Recent Chats.
+    if (secretChatMode) { clearSelectedImage(); return; }
 
     // Save Recent Chats separately so a recent-list permission issue
     // cannot falsely report that the actual message failed to send.
@@ -1152,3 +1189,4 @@ $("messageForm").addEventListener("submit", async e => {
 
 </body>
 </html>
+
