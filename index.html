@@ -971,7 +971,8 @@ function openChat(friend) {
               updatedAt: message.createdAt || serverTimestamp()
             },
             { merge: true }
-          ).catch(err => console.error("Could not save incoming recent chat:", err));
+          ).then(() => loadRecentChats())
+           .catch(err => console.error("Could not save incoming recent chat:", err));
         }
 
         const bubble = document.createElement("div");
