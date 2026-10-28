@@ -311,6 +311,18 @@ button {
   .sidebar.chat-open { display:none; }
   .chat.chat-open { display:flex; }
 }
+
+.person-avatar-button { border:0; padding:0; background:transparent; flex:0 0 auto; border-radius:50%; cursor:pointer; }
+.person-avatar-button:focus-visible,.person-name-button:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+.person-name-button { border:0; background:transparent; color:inherit; font:inherit; text-align:left; padding:8px 4px; flex:1; min-width:0; cursor:pointer; }
+#myAvatar,#friendAvatar { cursor:pointer; }
+.profile-photo-viewer { position:fixed; inset:0; z-index:10000; background:rgba(3,6,14,.94); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
+.profile-photo-viewer.hidden { display:none; }
+.profile-photo-viewer img { width:min(88vw,520px); height:min(72vh,520px); object-fit:contain; border-radius:12px; }
+.profile-photo-viewer .viewer-name { color:#fff; font-size:20px; font-weight:700; margin:12px 0; }
+.profile-photo-viewer .viewer-close { position:absolute; top:18px; right:18px; border:0; border-radius:12px; padding:10px 15px; color:#fff; background:#27314b; font-size:22px; cursor:pointer; }
+.profile-photo-viewer .viewer-placeholder { width:160px; height:160px; border-radius:50%; background:var(--primary); color:white; display:grid; place-items:center; font-size:64px; font-weight:700; }
+
 </style>
 </head>
 
@@ -441,6 +453,13 @@ button {
 </section>
 </div>
 </section>
+</div>
+
+<div id="profilePhotoViewer" class="profile-photo-viewer hidden" role="dialog" aria-modal="true" aria-label="Profile photo">
+  <button id="closePhotoViewer" class="viewer-close" type="button" aria-label="Close profile photo">✕</button>
+  <img id="profilePhotoViewerImage" alt="Profile photo" class="hidden">
+  <div id="profilePhotoViewerPlaceholder" class="viewer-placeholder hidden"></div>
+  <div id="profilePhotoViewerName" class="viewer-name"></div>
 </div>
 
 <div id="profileModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
@@ -822,10 +841,6 @@ function renderUsers() {
 
   $("userList").innerHTML = "";
 
-  if (!term) {
-    return;
-  }
-
   const filtered = allUsers.filter(u =>
     (u.name || "").toLowerCase().includes(term)
   );
@@ -841,26 +856,67 @@ function renderUsers() {
   );
 
   filtered.forEach(u => {
-    const button = document.createElement("button");
+    const row = document.createElement("div");
+    row.className = "person";
 
-    button.className = "person";
-
+    const avatarButton = document.createElement("button");
+    avatarButton.type = "button";
+    avatarButton.className = "person-avatar-button";
+    avatarButton.title = `View ${u.name} profile photo`;
+    avatarButton.setAttribute("aria-label", `View ${u.name} profile photo`);
     const avatar = document.createElement("div");
     avatar.className = "avatar";
     renderAvatar(avatar, u.name, u.photoData || "");
+    avatarButton.appendChild(avatar);
+    avatarButton.addEventListener("click", () => showProfilePhoto(u.name, u.photoData || ""));
 
-    const name = document.createElement("div");
+    const name = document.createElement("button");
+    name.type = "button";
+    name.className = "person-name-button";
     name.textContent = u.name;
+    name.addEventListener("click", () => openChat(u));
 
-    button.append(avatar, name);
-
-    button.addEventListener("click", () => openChat(u));
-
-    $("userList").appendChild(button);
+    row.append(avatarButton, name);
+    $("userList").appendChild(row);
   });
 }
 
 
+
+// View a user's profile photo by tapping their avatar.
+function showProfilePhoto(name, photoData) {
+  const viewer = $("profilePhotoViewer");
+  const img = $("profilePhotoViewerImage");
+  const placeholder = $("profilePhotoViewerPlaceholder");
+  $("profilePhotoViewerName").textContent = name || "Profile photo";
+  if (photoData) {
+    img.src = photoData;
+    img.alt = `${name || "User"} profile photo`;
+    img.classList.remove("hidden");
+    placeholder.classList.add("hidden");
+  } else {
+    img.removeAttribute("src");
+    img.classList.add("hidden");
+    placeholder.textContent = (name || "?").trim().charAt(0).toUpperCase();
+    placeholder.classList.remove("hidden");
+  }
+  viewer.classList.remove("hidden");
+}
+function closeProfilePhotoViewer() {
+  $("profilePhotoViewer").classList.add("hidden");
+  $("profilePhotoViewerImage").removeAttribute("src");
+}
+$("closePhotoViewer").addEventListener("click", closeProfilePhotoViewer);
+$("profilePhotoViewer").addEventListener("click", e => {
+  if (e.target === $("profilePhotoViewer")) closeProfilePhotoViewer();
+});
+$("myAvatar").addEventListener("click", () => {
+  const me = allUsers.find(u => u.uid === currentUser?.uid) || {};
+  showProfilePhoto($("myName").textContent || me.name || "You", me.photoData || "");
+});
+$("friendAvatar").addEventListener("click", () => {
+  if (selectedUser) showProfilePhoto(selectedUser.name, selectedUser.photoData || "");
+});
 
 // Profile editing
 let editPhotoData = "";
