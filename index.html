@@ -287,7 +287,16 @@ button {
 
 
 .section-title {padding:8px 13px 3px;color:var(--muted);font-size:12px;font-weight:bold;text-transform:uppercase;letter-spacing:.7px}
-.recent-list {max-height:190px;overflow:auto}
+.recent-section{border-bottom:1px solid var(--line);padding:8px 0 5px}
+.recent-heading{font-size:13px;font-weight:700;color:var(--muted);padding:4px 13px 7px}
+.recent-list {max-height:260px;overflow:auto}
+.recent-person {width:100%;display:flex;align-items:center;gap:9px;padding:9px 13px;background:transparent;color:var(--text);text-align:left;border-bottom:1px solid var(--line)}
+.recent-person .recent-meta {flex:1;min-width:0}
+.recent-person .recent-last {font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px}
+.recent-badge{display:inline-block;margin-top:4px;background:#6577ff;color:white;font-size:11px;font-weight:700;padding:3px 7px;border-radius:10px}
+.recent-person .avatar{width:38px;height:38px;flex:0 0 38px}
+.recent-person .recent-name{font-weight:600}
+
 .recent-person {width:100%;display:flex;align-items:center;gap:9px;padding:9px 13px;background:transparent;color:var(--text);text-align:left;border-bottom:1px solid var(--line)}
 .recent-person .recent-meta {flex:1;min-width:0}
 .recent-person .recent-last {font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px}
@@ -323,14 +332,17 @@ button {
 .profile-photo-viewer .viewer-close { position:absolute; top:18px; right:18px; border:0; border-radius:12px; padding:10px 15px; color:#fff; background:#27314b; font-size:22px; cursor:pointer; }
 .profile-photo-viewer .viewer-placeholder { width:160px; height:160px; border-radius:50%; background:var(--primary); color:white; display:grid; place-items:center; font-size:64px; font-weight:700; }
 
+.startup-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--bg,#0e1422);color:var(--text,#eef2ff);font-weight:700;font-size:18px;letter-spacing:.2px}
+.startup-screen.hidden{display:none}
 </style>
 </head>
 
 <body>
 
 <div id="app">
+<div id="startupScreen" class="startup-screen">Opening FriendChat…</div>
 
-<section id="auth">
+<section id="auth" class="hidden">
 
 <header>
   <div>
@@ -388,6 +400,15 @@ button {
   <button id="editProfileBtn" class="profile-icon" title="Profile settings" aria-label="Profile settings">⚙</button>
 </div>
 
+<div class="recent-section">
+  <div class="recent-heading">Recent Chats</div>
+  <div id="recentList" class="recent-list"><div class="empty">No recent chats yet. Search a friend to start chatting.</div></div>
+</div>
+<div class="recent-section">
+  <div class="recent-heading">Secret Chats</div>
+  <div id="secretRecentList" class="recent-list"><div class="empty">No secret chats yet.</div></div>
+</div>
+
 <div class="search">
   <input id="searchUsers"
     placeholder="Search friend by name">
@@ -411,7 +432,8 @@ button {
   <button id="backBtn" class="secondary">‹</button>
   <div class="avatar" id="friendAvatar">F</div>
   <div id="friendName" style="flex:1">Friend</div>
-  <button id="clearChatBtn" class="secondary" type="button">Clear Chat</button>
+  <button id="secretChatBtn" class="secondary" type="button">Move to Secret Chat</button>
+  <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
 </div>
 
 <div id="messages" class="messages"></div>
@@ -541,6 +563,9 @@ let allUsers = [];
 let messageSelectionMode = false;
 let selectedMessageIds = new Set();
 let currentChatId = "";
+let unsubscribeRecentChats = null;
+let recentChatRecords = [];
+let activeChatSecret = false;
 
 let unsubscribeMessages = null;
 let unsubscribeFriend = null;
@@ -702,7 +727,8 @@ async function saveProfile(user, name, photoData = "") {
 /* Authentication */
 onAuthStateChanged(auth, async user => {
   currentUser = user;
-
+  // Firebase restores browserLocalPersistence before deciding which screen to show.
+  $("startupScreen").classList.add("hidden");
   authSection.classList.toggle("hidden", !!user);
   workspace.classList.toggle("hidden", !user);
 
@@ -717,6 +743,7 @@ onAuthStateChanged(auth, async user => {
 
       await saveProfile(user, name);
       await loadUsers();
+      listenRecentChats();
     } catch (err) {
       showError("signinError", friendlyError(err));
       console.error(err);
@@ -805,6 +832,74 @@ $("signupForm").addEventListener("submit", async e => {
 
 /* Settings and logout */
 $("settingsLogoutBtn").addEventListener("click", async () => { $("profileModal").classList.add("hidden"); await signOut(auth); });
+
+/* Recent chats: only users with a conversation are listed, newest activity first. */
+function recentPreview(data) {
+  if (!data) return "";
+  if (data.type === "deleted") return "This message was deleted";
+  if (data.type === "image") return data.text || "📷 Photo";
+  if (data.type === "audio") return data.text || "🎵 Audio";
+  if (data.type === "file") return data.text || (data.fileName ? "📎 " + data.fileName : "📎 File");
+  return data.text || "";
+}
+async function saveRecentChat(peer, message, unreadCount, ownerUid = currentUser && currentUser.uid, isSecret = false) {
+  if (!currentUser || !ownerUid || !peer || !peer.uid || peer.uid === ownerUid) return;
+  const record = {
+    peerId: peer.uid,
+    name: peer.name || "Friend",
+    photoData: peer.photoData || "",
+    lastMessage: recentPreview(message),
+    lastMessageAt: message && message.createdAt ? message.createdAt : serverTimestamp(),
+    unreadCount: Math.max(0, Number(unreadCount || 0)),
+    isSecret: !!isSecret
+  };
+  await setDoc(doc(db, "users", ownerUid, "recentChats", peer.uid), record, { merge:true });
+}
+function listenRecentChats() {
+  if (unsubscribeRecentChats) unsubscribeRecentChats();
+  if (!currentUser) return;
+  unsubscribeRecentChats = onSnapshot(
+    collection(db, "users", currentUser.uid, "recentChats"),
+    snapshot => {
+      recentChatRecords = snapshot.docs.map(d => ({...d.data(), peerId:d.id}))
+        .filter(r => r.peerId && r.peerId !== currentUser.uid && r.lastMessageAt);
+      // A new incoming message updates this record's lastMessageAt and unreadCount,
+      // so it naturally rises to the top of Recent Chats with a New Message badge.
+      renderRecentChats();
+    },
+    err => console.warn("Recent chats listener:", err)
+  );
+}
+function renderRecentChats() {
+  const normalList = $("recentList");
+  const secretList = $("secretRecentList");
+  if (!normalList || !secretList) return;
+  normalList.innerHTML = "";
+  secretList.innerHTML = "";
+  const sorted = [...recentChatRecords].sort((a,b) => {
+    const av = a.lastMessageAt && a.lastMessageAt.toMillis ? a.lastMessageAt.toMillis() : (a.lastMessageAt instanceof Date ? a.lastMessageAt.getTime() : 0);
+    const bv = b.lastMessageAt && b.lastMessageAt.toMillis ? b.lastMessageAt.toMillis() : (b.lastMessageAt instanceof Date ? b.lastMessageAt.getTime() : 0);
+    return bv-av;
+  });
+  const normal = sorted.filter(r => !r.isSecret);
+  const secret = sorted.filter(r => !!r.isSecret);
+  const renderRows = (records, list, emptyText) => {
+    if (!records.length) { list.innerHTML = `<div class="empty">${emptyText}</div>`; return; }
+    records.forEach(record => {
+      const peer = allUsers.find(u => u.uid === record.peerId) || {uid:record.peerId,name:record.name || "Friend",photoData:record.photoData || ""};
+      const row = document.createElement("button"); row.type = "button"; row.className = "recent-person";
+      const avatar = document.createElement("div"); avatar.className = "avatar"; renderAvatar(avatar, peer.name, peer.photoData || "");
+      const meta = document.createElement("div"); meta.className = "recent-meta";
+      const name = document.createElement("div"); name.className = "recent-name"; name.textContent = peer.name;
+      const last = document.createElement("div"); last.className = "recent-last"; last.textContent = record.lastMessage || "Chat started";
+      meta.append(name,last);
+      if (Number(record.unreadCount || 0) > 0) { const badge = document.createElement("span"); badge.className = "recent-badge"; badge.textContent = "New Message"; meta.appendChild(badge); }
+      row.append(avatar,meta); row.addEventListener("click", () => openChat(peer, !!record.isSecret)); list.appendChild(row);
+    });
+  };
+  renderRows(normal, normalList, "No recent chats yet. Search a friend to start chatting.");
+  renderRows(secret, secretList, "No secret chats yet.");
+}
 
 /* Load registered users */
 async function loadUsers() {
@@ -1073,9 +1168,22 @@ async function deleteSelectedMessages(forEveryone) {
 $("deleteForMeBtn").addEventListener("click", () => deleteSelectedMessages(false));
 $("deleteForEveryoneBtn").addEventListener("click", () => deleteSelectedMessages(true));
 
+// Move the current conversation between Recent Chats and Secret Chats (UI organization).
+$("secretChatBtn").addEventListener("click", async () => {
+  if (!currentUser || !selectedUser) return;
+  const nextSecret = !activeChatSecret;
+  try {
+    await saveRecentChat(selectedUser, {text:"Chat opened", createdAt:serverTimestamp()}, 0, currentUser.uid, nextSecret);
+    activeChatSecret = nextSecret;
+    $("clearChatBtn").classList.toggle("hidden", !activeChatSecret);
+    $("secretChatBtn").textContent = activeChatSecret ? "Move to Recent Chats" : "Move to Secret Chat";
+    renderRecentChats();
+  } catch (err) { alert("Could not update chat section: " + friendlyError(err)); }
+});
+
 // Clear chat only for the current user; the other participant keeps their messages.
 $("clearChatBtn").addEventListener("click", async () => {
-  if (!currentUser || !currentChatId) return;
+  if (!currentUser || !currentChatId || !activeChatSecret) return;
   if (!confirm("Clear this chat for you only? The other person will still see their messages.")) return;
   const button = $("clearChatBtn");
   button.disabled = true;
@@ -1093,8 +1201,11 @@ $("clearChatBtn").addEventListener("click", async () => {
 });
 
 /* Open conversation */
-function openChat(friend) {
+function openChat(friend, isSecret = false) {
   selectedUser = friend;
+  activeChatSecret = !!isSecret;
+  $("clearChatBtn").classList.toggle("hidden", !activeChatSecret);
+  $("secretChatBtn").textContent = activeChatSecret ? "Move to Recent Chats" : "Move to Secret Chat";
 
   $("chatEmpty").classList.add("hidden");
   $("activeChat").classList.remove("hidden");
@@ -1112,6 +1223,9 @@ function openChat(friend) {
   const chatId = conversationId(currentUser.uid, friend.uid);
   currentChatId = chatId;
   resetMessageSelection();
+  // Opening a conversation clears its New Message badge. The live message
+  // listener below refreshes the preview with the actual latest message.
+  saveRecentChat(friend, null, 0, currentUser.uid, activeChatSecret).catch(err => console.warn(err));
 
   const messagesQuery = query(
     collection(db, "chats", chatId, "messages"),
@@ -1121,6 +1235,15 @@ function openChat(friend) {
   unsubscribeMessages = onSnapshot(
     messagesQuery,
     snapshot => {
+      const visibleDocs = snapshot.docs.filter(item => {
+        const m = item.data();
+        return !(Array.isArray(m.deletedFor) && m.deletedFor.includes(currentUser.uid)) && !(Array.isArray(m.hiddenFor) && m.hiddenFor.includes(currentUser.uid));
+      });
+      const latestDoc = visibleDocs.length ? visibleDocs[visibleDocs.length - 1] : null;
+      if (latestDoc) {
+        const latestMessage = latestDoc.data();
+        saveRecentChat(friend, latestMessage, 0, currentUser.uid, activeChatSecret).catch(err => console.warn(err));
+      }
       $("messages").innerHTML = "";
 
       snapshot.forEach(item => {
@@ -1361,6 +1484,15 @@ $("messageForm").addEventListener("submit", async e => {
 
   try {
     await addDoc(collection(db, "chats", chatId, "messages"), payload);
+    // Sender's recent list: move this conversation to the top.
+    await saveRecentChat(selectedUser, payload, 0, currentUser.uid, activeChatSecret);
+    // Receiver's recent list: show a New Message badge.
+    const myProfile = { uid: currentUser.uid, name: $("myName").textContent || "Friend", photoData: "" };
+    const avatarImg = $("myAvatar").querySelector("img");
+    if (avatarImg) myProfile.photoData = avatarImg.src;
+    // Receiver-side Recent Chat record lets the incoming conversation appear
+    // with a New Message badge (Firestore rules must permit this sender-owned update).
+    await saveRecentChat(myProfile, payload, 1, selectedUser.uid).catch(err => console.warn("Receiver recent-chat update blocked by Firestore Rules:", err));
     clearSelectedImage();
 
 
