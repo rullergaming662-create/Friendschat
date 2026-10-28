@@ -411,7 +411,7 @@ button {
 </div>
 
 <div class="recent-section">
-  <div id="recentList" class="recent-list"><div class="empty">No recent chats yet. Search a friend to start chatting.</div></div>
+  <div id="recentList" class="recent-list"></div>
 </div>
 
 <div id="userList" class="user-list"></div>
@@ -900,7 +900,7 @@ function renderRecentChats() {
       row.append(avatar,meta); row.addEventListener("click", () => openChat(peer)); list.appendChild(row);
     });
   };
-  renderRows(normal, normalList, "No recent chats yet. Search a friend to start chatting.");
+  renderRows(normal, normalList, "");
 }
 
 /* Load registered users and keep online presence live. */
@@ -928,6 +928,9 @@ function renderUsers() {
     .toLowerCase();
 
   $("userList").innerHTML = "";
+
+  // Do not list every account by default. Only show people after a name search.
+  if (!term) return;
 
   const filtered = allUsers.filter(u =>
     (u.name || "").toLowerCase().includes(term)
@@ -1490,4 +1493,3 @@ $("messageForm").addEventListener("submit", async e => {
 
 </body>
 </html>
-
