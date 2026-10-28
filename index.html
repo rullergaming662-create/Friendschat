@@ -1441,51 +1441,73 @@ $("backBtn").addEventListener("click", () => {
   $("chatPanel").classList.remove("chat-open");
 });
 
-/* Send text, photo, or photo with a caption */
+/* Send text, photo, audio, or file */
+let messageSendInProgress = false;
 $("messageForm").addEventListener("submit", async e => {
   e.preventDefault();
+  if (messageSendInProgress) return;
 
-  const text = $("messageInput").value.trim();
+  const input = $("messageInput");
+  const text = input.value.trim();
   const imageData = selectedImageData;
   const attachment = selectedAttachment;
 
-  if ((!text && !imageData) || !currentUser || !selectedUser) {
-    return;
-  }
+  if ((!text && !imageData) || !currentUser || !selectedUser) return;
 
   const chatId = conversationId(currentUser.uid, selectedUser.uid);
-
   const payload = {
     type: attachment ? attachment.type : (imageData ? "image" : "text"),
-    text: text,
+    text,
     senderId: currentUser.uid,
     receiverId: selectedUser.uid,
     createdAt: serverTimestamp(),
     readAt: null
   };
   if (imageData) payload.imageData = imageData;
-  if (attachment) { payload.fileName=attachment.name; payload.mimeType=attachment.mimeType; }
+  if (attachment) {
+    payload.fileName = attachment.name;
+    payload.mimeType = attachment.mimeType;
+  }
 
-  const oldText = $("messageInput").value;
-  $("messageInput").value = "";
+  const oldText = input.value;
+  messageSendInProgress = true;
+  const sendButton = $("sendBtn");
+  if (sendButton) sendButton.disabled = true;
 
   try {
+    // The message itself is the primary operation. Do not treat recent-chat
+    // metadata failures as a failed message after the message was committed.
     await addDoc(collection(db, "chats", chatId, "messages"), payload);
-    // Sender's recent list: move this conversation to the top.
-    await saveRecentChat(selectedUser, payload, 0, currentUser.uid, activeChatSecret);
-    // Receiver's recent list: show a New Message badge.
-    const myProfile = { uid: currentUser.uid, name: $("myName").textContent || "Friend", photoData: "" };
-    const avatarImg = $("myAvatar").querySelector("img");
-    if (avatarImg) myProfile.photoData = avatarImg.src;
-    // Receiver-side Recent Chat record lets the incoming conversation appear
-    // with a New Message badge (Firestore rules must permit this sender-owned update).
-    await saveRecentChat(myProfile, payload, 1, selectedUser.uid).catch(err => console.warn("Receiver recent-chat update blocked by Firestore Rules:", err));
+    input.value = "";
     clearSelectedImage();
 
-
+    // Best-effort recent chat updates. Firestore rules may independently
+    // restrict these writes; that must not undo or falsely fail the message.
+    try {
+      await saveRecentChat(selectedUser, payload, 0, currentUser.uid, activeChatSecret);
+    } catch (recentErr) {
+      console.warn("Sender recent-chat update blocked:", recentErr);
+    }
+    try {
+      const myProfile = {
+        uid: currentUser.uid,
+        name: $("myName").textContent || "Friend",
+        photoData: ""
+      };
+      const avatarImg = $("myAvatar").querySelector("img");
+      if (avatarImg) myProfile.photoData = avatarImg.src;
+      await saveRecentChat(myProfile, payload, 1, selectedUser.uid);
+    } catch (recentErr) {
+      console.warn("Receiver recent-chat update blocked:", recentErr);
+    }
   } catch (err) {
+    console.error("Message send failed:", err);
     alert("Message send nahi hua: " + friendlyError(err));
-    $("messageInput").value = oldText;
+    input.value = oldText;
+  } finally {
+    messageSendInProgress = false;
+    if (sendButton) sendButton.disabled = false;
+    input.focus();
   }
 });
 
