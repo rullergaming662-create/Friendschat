@@ -261,6 +261,13 @@ button {
 .photo-viewer-actions {display:flex;gap:10px;margin-top:12px}
 .photo-viewer-actions a,.photo-viewer-actions button {background:#27314b;color:white;padding:10px 16px;border-radius:10px;text-decoration:none}
 
+.message-select-bar {display:flex;align-items:center;gap:8px;padding:9px 12px;background:#202941;border-top:1px solid var(--line);flex-wrap:wrap}
+.message-select-bar button {background:#39486a;color:#edf1ff;padding:9px 12px;border-radius:9px}
+.message-select-bar button.danger {background:#a8324a}
+.message-select-bar button:disabled {opacity:.45;cursor:not-allowed}
+.bubble.selectable {cursor:pointer;position:relative}
+.bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
+.selection-check {display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#6577ff;color:white;font-size:13px;font-weight:bold;margin-right:7px;vertical-align:middle}
 .empty {
   text-align:center;
   padding:25px;
@@ -382,10 +389,17 @@ button {
 <div class="chat-head">
   <button id="backBtn" class="secondary">‹</button>
   <div class="avatar" id="friendAvatar">F</div>
-  <div id="friendName">Friend</div>
+  <div id="friendName" style="flex:1">Friend</div>
+  <button id="selectMessagesBtn" class="secondary" type="button">Select</button>
 </div>
 
 <div id="messages" class="messages"></div>
+<div id="messageSelectBar" class="message-select-bar hidden">
+  <span id="selectedMessageCount" style="flex:1;color:#edf1ff">0 selected</span>
+  <button id="cancelMessageSelect" type="button">Cancel</button>
+  <button id="deleteForMeBtn" type="button">Delete for me</button>
+  <button id="deleteForEveryoneBtn" class="danger" type="button">Delete for everyone</button>
+</div>
 
 <div id="imagePreviewWrap" class="image-preview-wrap hidden">
   <img id="imagePreview" class="image-preview" alt="Selected photo preview">
@@ -468,6 +482,7 @@ import {
   serverTimestamp,
   updateDoc,
   deleteDoc,
+  arrayUnion,
   runTransaction
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
@@ -496,6 +511,9 @@ let selectedImageFile = null;
 let selectedImageData = "";
 let selectedAttachment = null;
 let allUsers = [];
+let messageSelectionMode = false;
+let selectedMessageIds = new Set();
+let currentChatId = "";
 
 let unsubscribeMessages = null;
 let unsubscribeFriend = null;
@@ -904,7 +922,73 @@ function cleanupChat() {
   unsubscribeMessages = null;
   unsubscribeFriend = null;
   selectedUser = null;
+  currentChatId = "";
+  resetMessageSelection();
 }
+
+/* WhatsApp-style message selection and deletion */
+function updateMessageSelectionUI() {
+  $("selectMessagesBtn").textContent = messageSelectionMode ? "Done" : "Select";
+  $("messageSelectBar").classList.toggle("hidden", !messageSelectionMode);
+  $("selectedMessageCount").textContent = `${selectedMessageIds.size} selected`;
+  const selectedMessages = [...document.querySelectorAll("#messages [data-message-id]")]
+    .filter(el => selectedMessageIds.has(el.dataset.messageId));
+  const canDeleteEveryone = selectedMessages.length > 0 && selectedMessages.every(el => el.dataset.senderId === currentUser?.uid && el.dataset.deleted !== "true");
+  $("deleteForEveryoneBtn").disabled = !canDeleteEveryone;
+  document.querySelectorAll("#messages [data-message-id]").forEach(el => {
+    const selected = selectedMessageIds.has(el.dataset.messageId);
+    el.classList.toggle("selected", selected);
+    const check = el.querySelector(".selection-check");
+    if (check) check.textContent = selected ? "✓" : "";
+  });
+}
+function toggleMessageSelection(id) {
+  if (selectedMessageIds.has(id)) selectedMessageIds.delete(id);
+  else selectedMessageIds.add(id);
+  updateMessageSelectionUI();
+}
+function resetMessageSelection() {
+  messageSelectionMode = false;
+  selectedMessageIds.clear();
+  updateMessageSelectionUI();
+}
+$("selectMessagesBtn").addEventListener("click", () => {
+  if (messageSelectionMode) resetMessageSelection();
+  else { messageSelectionMode = true; updateMessageSelectionUI(); }
+});
+$("cancelMessageSelect").addEventListener("click", resetMessageSelection);
+async function deleteSelectedMessages(forEveryone) {
+  if (!currentUser || !currentChatId || selectedMessageIds.size === 0) return;
+  const ids = [...selectedMessageIds];
+  const verb = forEveryone ? "everyone" : "you";
+  if (!confirm(`Delete ${ids.length} selected message${ids.length === 1 ? "" : "s"} for ${verb}?`)) return;
+  const selectedEls = ids.map(id => document.querySelector(`#messages [data-message-id="${CSS.escape(id)}"]`)).filter(Boolean);
+  try {
+    const jobs = ids.map(async id => {
+      const ref = doc(db, "chats", currentChatId, "messages", id);
+      if (forEveryone) {
+        const el = document.querySelector(`#messages [data-message-id="${CSS.escape(id)}"]`);
+        if (!el || el.dataset.senderId !== currentUser.uid) return;
+        await updateDoc(ref, {
+          type: "deleted",
+          text: "This message was deleted",
+          imageData: "",
+          fileName: "",
+          mimeType: "",
+          deletedAt: serverTimestamp()
+        });
+      } else {
+        await updateDoc(ref, { deletedFor: arrayUnion(currentUser.uid) });
+      }
+    });
+    await Promise.all(jobs);
+    resetMessageSelection();
+  } catch (err) {
+    alert("Could not delete selected messages: " + friendlyError(err));
+  }
+}
+$("deleteForMeBtn").addEventListener("click", () => deleteSelectedMessages(false));
+$("deleteForEveryoneBtn").addEventListener("click", () => deleteSelectedMessages(true));
 
 /* Open conversation */
 function openChat(friend) {
@@ -924,6 +1008,8 @@ function openChat(friend) {
   if (unsubscribeFriend) unsubscribeFriend();
 
   const chatId = conversationId(currentUser.uid, friend.uid);
+  currentChatId = chatId;
+  resetMessageSelection();
 
   const messagesQuery = query(
     collection(db, "chats", chatId, "messages"),
@@ -937,6 +1023,7 @@ function openChat(friend) {
 
       snapshot.forEach(item => {
         const message = item.data();
+        if (Array.isArray(message.deletedFor) && message.deletedFor.includes(currentUser.uid)) return;
 
         const bubble = document.createElement("div");
 
@@ -945,8 +1032,29 @@ function openChat(friend) {
           (message.senderId === currentUser.uid
             ? "mine"
             : "theirs");
+        bubble.dataset.messageId = item.id;
+        bubble.dataset.senderId = message.senderId || "";
+        bubble.dataset.deleted = String(message.type === "deleted");
+        if (messageSelectionMode) {
+          bubble.classList.add("selectable");
+          const marker = document.createElement("span");
+          marker.className = "selection-check";
+          marker.textContent = selectedMessageIds.has(item.id) ? "✓" : "";
+          bubble.appendChild(marker);
+          bubble.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleMessageSelection(item.id);
+          });
+        }
 
-        if ((message.type === "image" || message.type === "file" || message.type === "audio") && message.imageData) {
+        if (message.type === "deleted") {
+          const deletedText = document.createElement("div");
+          deletedText.textContent = "🚫 This message was deleted";
+          deletedText.style.color = "#aab4ca";
+          deletedText.style.fontStyle = "italic";
+          bubble.appendChild(deletedText);
+        } else if ((message.type === "image" || message.type === "file" || message.type === "audio") && message.imageData) {
           if (message.type === "image") {
             const image = document.createElement("img");
             image.className = "image-message";
@@ -1020,6 +1128,7 @@ function openChat(friend) {
 
         bubble.appendChild(time);
         $("messages").appendChild(bubble);
+        updateMessageSelectionUI();
 
         /*
          * Mark received messages as read.
