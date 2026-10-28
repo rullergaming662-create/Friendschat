@@ -323,30 +323,22 @@ button {
 
 .person-avatar-button { border:0; padding:0; background:transparent; flex:0 0 auto; border-radius:50%; cursor:pointer; }
 .person-avatar-button:focus-visible,.person-name-button:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
-.person-name-button { border:0; background:transparent; color:inherit; font:inherit; text-align:left; padding:8px 4px; flex:1; min-width:0; cursor:pointer; }
+.person-name-button { border:0; background:transparent; color:inherit; font:inherit; text-align:left; padding:8px 4px; flex:1; min-width:0; cursor:pointer; display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+.person-name-line {display:flex;align-items:center;gap:7px}
+.person-status {font-size:12px;color:var(--muted);line-height:1.2}
+.online-dot {display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;vertical-align:middle;flex:0 0 8px}
+.recent-person .recent-name {display:flex;align-items:center;gap:7px}
+.recent-person .person-status {font-size:11px;margin-top:2px}
 #myAvatar,#friendAvatar { cursor:pointer; }
 .profile-photo-viewer { position:fixed; inset:0; z-index:10000; background:rgba(3,6,14,.94); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
 .profile-photo-viewer.hidden { display:none; }
-.profile-photo-viewer img { width:min(88vw,520px); height:min(72vh,520px); object-fit:contain; border-radius:12px; }
+.profile-photo-viewer img { width:min(78vw,420px); height:min(78vw,420px); max-height:72vh; object-fit:cover; object-position:center; border-radius:50%; border:3px solid rgba(255,255,255,.18); box-shadow:0 14px 44px #0008; }
 .profile-photo-viewer .viewer-name { color:#fff; font-size:20px; font-weight:700; margin:12px 0; }
 .profile-photo-viewer .viewer-close { position:absolute; top:18px; right:18px; border:0; border-radius:12px; padding:10px 15px; color:#fff; background:#27314b; font-size:22px; cursor:pointer; }
 .profile-photo-viewer .viewer-placeholder { width:160px; height:160px; border-radius:50%; background:var(--primary); color:white; display:grid; place-items:center; font-size:64px; font-weight:700; }
 
 .startup-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--bg,#0e1422);color:var(--text,#eef2ff);font-weight:700;font-size:18px;letter-spacing:.2px}
 .startup-screen.hidden{display:none}
-
-
-.primary { background:var(--primary); color:#fff; border:0; border-radius:10px; padding:11px 14px; font-weight:700; }
-.search-page { flex:1; min-width:0; padding:20px; overflow:auto; background:var(--bg); }
-.search-page-head { display:flex; align-items:center; gap:14px; }
-.search-page-head h2 { margin:0; }
-.search-hint { color:var(--muted); }
-.search-page-input { width:100%; padding:14px; margin:12px 0; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--text); }
-.search-page-results { display:flex; flex-direction:column; gap:8px; }
-.search-result { display:flex; align-items:center; gap:12px; width:100%; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--text); text-align:left; }
-.recent-person { position:relative; padding-right:44px; }
-.delete-recent { position:absolute; right:8px; top:50%; transform:translateY(-50%); border:0; border-radius:8px; padding:7px 9px; background:#492b3a; color:#ffb8c5; z-index:2; }
-@media(max-width:700px) { .search-page { padding:14px; } }
 </style>
 </head>
 
@@ -413,33 +405,18 @@ button {
   <button id="editProfileBtn" class="profile-icon" title="Profile settings" aria-label="Profile settings">⚙</button>
 </div>
 
-<div class="recent-section">
-  <div class="recent-heading">Recent Chats</div>
-  <div id="recentList" class="recent-list"><div class="empty">No recent chats yet. Search a friend to start chatting.</div></div>
-</div>
 <div class="search">
   <input id="searchUsers"
     placeholder="Search friend by name">
 </div>
 
 <div class="recent-section">
-  <div class="recent-heading">Secret Chats</div>
-  <div id="secretRecentList" class="recent-list"><div class="empty">No secret chats yet.</div></div>
+  <div id="recentList" class="recent-list"></div>
 </div>
 
 <div id="userList" class="user-list"></div>
 
 </aside>
-
-<section id="searchPage" class="search-page hidden">
-  <div class="search-page-head">
-    <button id="closeSearchPage" class="secondary" type="button">← Back</button>
-    <h2>Search users</h2>
-  </div>
-  <p class="search-hint">Search by username and tap a person to start chatting.</p>
-  <input id="searchPageInput" class="search-page-input" placeholder="Enter a name..." autocomplete="off">
-  <div id="searchPageResults" class="search-page-results"></div>
-</section>
 
 <section id="chatPanel" class="chat">
 
@@ -455,7 +432,6 @@ button {
   <button id="backBtn" class="secondary">‹</button>
   <div class="avatar" id="friendAvatar">F</div>
   <div id="friendName" style="flex:1">Friend</div>
-  <button id="secretChatBtn" class="secondary" type="button">Move to Secret Chat</button>
   <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
 </div>
 
@@ -555,7 +531,6 @@ import {
   onSnapshot,
   serverTimestamp,
   updateDoc,
-  deleteDoc,
   runTransaction
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
@@ -768,6 +743,8 @@ onAuthStateChanged(auth, async user => {
       renderAvatar($("myAvatar"), name, profile.photoData || "");
 
       await saveProfile(user, name);
+      // Mark this account online as soon as authentication is restored.
+      await setDoc(doc(db, "users", user.uid), { online:true, lastSeen:serverTimestamp() }, { merge:true });
       await loadUsers();
       listenRecentChats();
     } catch (err) {
@@ -861,7 +838,11 @@ window.addEventListener("beforeunload", () => {
 });
 
 /* Settings and logout */
-$("settingsLogoutBtn").addEventListener("click", async () => { $("profileModal").classList.add("hidden"); await signOut(auth); });
+$("settingsLogoutBtn").addEventListener("click", async () => {
+  $("profileModal").classList.add("hidden");
+  if (currentUser) await setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
+  await signOut(auth);
+});
 
 /* Recent chats: only users with a conversation are listed, newest activity first. */
 function recentPreview(data) {
@@ -880,8 +861,7 @@ async function saveRecentChat(peer, message, unreadCount, ownerUid = currentUser
     photoData: peer.photoData || "",
     lastMessage: recentPreview(message),
     lastMessageAt: message && message.createdAt ? message.createdAt : serverTimestamp(),
-    unreadCount: Math.max(0, Number(unreadCount || 0)),
-    isSecret: !!isSecret
+    unreadCount: Math.max(0, Number(unreadCount || 0))
   };
   await setDoc(doc(db, "users", ownerUid, "recentChats", peer.uid), record, { merge:true });
 }
@@ -902,17 +882,14 @@ function listenRecentChats() {
 }
 function renderRecentChats() {
   const normalList = $("recentList");
-  const secretList = $("secretRecentList");
-  if (!normalList || !secretList) return;
+  if (!normalList) return;
   normalList.innerHTML = "";
-  secretList.innerHTML = "";
   const sorted = [...recentChatRecords].sort((a,b) => {
     const av = a.lastMessageAt && a.lastMessageAt.toMillis ? a.lastMessageAt.toMillis() : (a.lastMessageAt instanceof Date ? a.lastMessageAt.getTime() : 0);
     const bv = b.lastMessageAt && b.lastMessageAt.toMillis ? b.lastMessageAt.toMillis() : (b.lastMessageAt instanceof Date ? b.lastMessageAt.getTime() : 0);
     return bv-av;
   });
-  const normal = sorted.filter(r => !r.isSecret);
-  const secret = sorted.filter(r => !!r.isSecret);
+  const normal = sorted;
   const renderRows = (records, list, emptyText) => {
     if (!records.length) { list.innerHTML = `<div class="empty">${emptyText}</div>`; return; }
     records.forEach(record => {
@@ -924,24 +901,12 @@ function renderRecentChats() {
       if (peer.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
       const last = document.createElement("div"); last.className = "recent-last"; last.textContent = record.lastMessage || "Chat started";
       meta.append(name,last);
+      if (peer.online === true) { const status=document.createElement("div"); status.className="person-status"; status.textContent="Online"; meta.appendChild(status); }
       if (Number(record.unreadCount || 0) > 0) { const badge = document.createElement("span"); badge.className = "recent-badge"; badge.textContent = "New Message"; meta.appendChild(badge); }
-      row.append(avatar,meta);
-      row.addEventListener("click", () => openChat(peer, !!record.isSecret));
-      const del = document.createElement("button");
-      del.type = "button"; del.className = "delete-recent"; del.textContent = "×";
-      del.title = "Remove from Recent Chats"; del.setAttribute("aria-label", "Remove " + peer.name + " from Recent Chats");
-      del.addEventListener("click", async event => {
-        event.stopPropagation();
-        if (!confirm("Remove " + peer.name + " from your Recent Chats? This will only remove it from your list; messages are not deleted.")) return;
-        try { await deleteDoc(doc(db, "users", currentUser.uid, "recentChats", record.peerId)); }
-        catch (err) { alert("Could not remove recent chat: " + friendlyError(err)); }
-      });
-      row.appendChild(del);
-      list.appendChild(row);
+      row.append(avatar,meta); row.addEventListener("click", () => openChat(peer)); list.appendChild(row);
     });
   };
-  renderRows(normal, normalList, "No recent chats yet. Search a friend to start chatting.");
-  renderRows(secret, secretList, "No secret chats yet.");
+  renderRows(normal, normalList, "");
 }
 
 /* Load registered users and keep online presence live. */
@@ -961,42 +926,6 @@ async function loadUsers() {
 }
 
 $("searchUsers").addEventListener("input", renderUsers);
-function renderSearchPageResults() {
-  const term = $("searchPageInput").value.trim().toLowerCase();
-  const results = $("searchPageResults");
-  results.innerHTML = "";
-  if (!term) { results.innerHTML = '<div class="empty">Type a name to search for users.</div>'; return; }
-  const matches = allUsers.filter(u => (u.name || "").toLowerCase().includes(term)).sort((a,b)=>a.name.localeCompare(b.name));
-  if (!matches.length) { results.innerHTML = '<div class="empty">No matching users found.</div>'; return; }
-  matches.forEach(u => {
-    const row = document.createElement("button"); row.type="button"; row.className="search-result";
-    const avatar=document.createElement("div"); avatar.className="avatar"; renderAvatar(avatar,u.name,u.photoData||"");
-    const name=document.createElement("strong"); name.textContent=u.name;
-    if (u.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
-    row.append(avatar,name);
-    row.addEventListener("click", () => {
-      $("searchPage").classList.add("hidden");
-      $("chatPanel").classList.remove("hidden");
-      openChat(u);
-    });
-    results.appendChild(row);
-  });
-}
-$("openSearchPage").addEventListener("click", () => {
-  $("sidebar").classList.add("hidden");
-  $("chatPanel").classList.add("hidden");
-  $("searchPage").classList.remove("hidden");
-  $("searchPageInput").value="";
-  renderSearchPageResults();
-  $("searchPageInput").focus();
-});
-$("closeSearchPage").addEventListener("click", () => {
-  $("searchPage").classList.add("hidden");
-  $("sidebar").classList.remove("hidden");
-  $("chatPanel").classList.remove("hidden");
-});
-$("searchPageInput").addEventListener("input", renderSearchPageResults);
-
 
 /* Search and render friends */
 function renderUsers() {
@@ -1005,6 +934,9 @@ function renderUsers() {
     .toLowerCase();
 
   $("userList").innerHTML = "";
+
+  // Do not list every account by default. Only show people after a name search.
+  if (!term) return;
 
   const filtered = allUsers.filter(u =>
     (u.name || "").toLowerCase().includes(term)
@@ -1038,8 +970,12 @@ function renderUsers() {
     const name = document.createElement("button");
     name.type = "button";
     name.className = "person-name-button";
-    name.textContent = u.name;
-    if (u.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
+    const nameLine = document.createElement("span");
+    nameLine.className = "person-name-line";
+    nameLine.textContent = u.name;
+    if (u.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; nameLine.appendChild(dot); }
+    name.appendChild(nameLine);
+    if (u.online === true) { const status=document.createElement("span"); status.className="person-status"; status.textContent="Online"; name.appendChild(status); }
     name.addEventListener("click", () => openChat(u));
 
     row.append(avatarButton, name);
@@ -1239,22 +1175,9 @@ async function deleteSelectedMessages(forEveryone) {
 $("deleteForMeBtn").addEventListener("click", () => deleteSelectedMessages(false));
 $("deleteForEveryoneBtn").addEventListener("click", () => deleteSelectedMessages(true));
 
-// Move the current conversation between Recent Chats and Secret Chats (UI organization).
-$("secretChatBtn").addEventListener("click", async () => {
-  if (!currentUser || !selectedUser) return;
-  const nextSecret = !activeChatSecret;
-  try {
-    await saveRecentChat(selectedUser, {text:"Chat opened", createdAt:serverTimestamp()}, 0, currentUser.uid, nextSecret);
-    activeChatSecret = nextSecret;
-    $("clearChatBtn").classList.toggle("hidden", !activeChatSecret);
-    $("secretChatBtn").textContent = activeChatSecret ? "Move to Recent Chats" : "Move to Secret Chat";
-    renderRecentChats();
-  } catch (err) { alert("Could not update chat section: " + friendlyError(err)); }
-});
-
 // Clear chat only for the current user; the other participant keeps their messages.
 $("clearChatBtn").addEventListener("click", async () => {
-  if (!currentUser || !currentChatId || !activeChatSecret) return;
+  if (!currentUser || !currentChatId) return;
   if (!confirm("Clear this chat for you only? The other person will still see their messages.")) return;
   const button = $("clearChatBtn");
   button.disabled = true;
@@ -1274,9 +1197,8 @@ $("clearChatBtn").addEventListener("click", async () => {
 /* Open conversation */
 function openChat(friend, isSecret = false) {
   selectedUser = friend;
-  activeChatSecret = !!isSecret;
-  $("clearChatBtn").classList.toggle("hidden", !activeChatSecret);
-  $("secretChatBtn").textContent = activeChatSecret ? "Move to Recent Chats" : "Move to Secret Chat";
+  activeChatSecret = false;
+  $("clearChatBtn").classList.remove("hidden");
 
   $("chatEmpty").classList.add("hidden");
   $("activeChat").classList.remove("hidden");
@@ -1313,8 +1235,20 @@ function openChat(friend, isSecret = false) {
       const latestDoc = visibleDocs.length ? visibleDocs[visibleDocs.length - 1] : null;
       if (latestDoc) {
         const latestMessage = latestDoc.data();
+        const incoming = latestMessage.senderId !== currentUser.uid;
+        // When the recipient is currently viewing this chat, update their own
+        // recent-chat record too; unread badge is cleared while the chat is open.
         saveRecentChat(friend, latestMessage, 0, currentUser.uid, activeChatSecret).catch(err => console.warn(err));
       }
+      // Keep the sender's recent chat updated whenever messages arrive in this
+      // active conversation. The receiver's own recent record is also refreshed.
+      snapshot.docs.forEach(item => {
+        const m = item.data();
+        if (m.senderId !== currentUser.uid && m.receiverId === currentUser.uid) {
+          const sender = allUsers.find(u => u.uid === m.senderId) || {uid:m.senderId,name:friend.name,photoData:friend.photoData||""};
+          saveRecentChat(sender, m, 0, currentUser.uid, false).catch(err => console.warn("Receiver recent chat:", err));
+        }
+      });
       $("messages").innerHTML = "";
 
       snapshot.forEach(item => {
@@ -1525,51 +1459,73 @@ $("backBtn").addEventListener("click", () => {
   $("chatPanel").classList.remove("chat-open");
 });
 
-/* Send text, photo, or photo with a caption */
+/* Send text, photo, audio, or file */
+let messageSendInProgress = false;
 $("messageForm").addEventListener("submit", async e => {
   e.preventDefault();
+  if (messageSendInProgress) return;
 
-  const text = $("messageInput").value.trim();
+  const input = $("messageInput");
+  const text = input.value.trim();
   const imageData = selectedImageData;
   const attachment = selectedAttachment;
 
-  if ((!text && !imageData) || !currentUser || !selectedUser) {
-    return;
-  }
+  if ((!text && !imageData) || !currentUser || !selectedUser) return;
 
   const chatId = conversationId(currentUser.uid, selectedUser.uid);
-
   const payload = {
     type: attachment ? attachment.type : (imageData ? "image" : "text"),
-    text: text,
+    text,
     senderId: currentUser.uid,
     receiverId: selectedUser.uid,
     createdAt: serverTimestamp(),
     readAt: null
   };
   if (imageData) payload.imageData = imageData;
-  if (attachment) { payload.fileName=attachment.name; payload.mimeType=attachment.mimeType; }
+  if (attachment) {
+    payload.fileName = attachment.name;
+    payload.mimeType = attachment.mimeType;
+  }
 
-  const oldText = $("messageInput").value;
-  $("messageInput").value = "";
+  const oldText = input.value;
+  messageSendInProgress = true;
+  const sendButton = $("sendBtn");
+  if (sendButton) sendButton.disabled = true;
 
   try {
+    // The message itself is the primary operation. Do not treat recent-chat
+    // metadata failures as a failed message after the message was committed.
     await addDoc(collection(db, "chats", chatId, "messages"), payload);
-    // Sender's recent list: move this conversation to the top.
-    await saveRecentChat(selectedUser, payload, 0, currentUser.uid, activeChatSecret);
-    // Receiver's recent list: show a New Message badge.
-    const myProfile = { uid: currentUser.uid, name: $("myName").textContent || "Friend", photoData: "" };
-    const avatarImg = $("myAvatar").querySelector("img");
-    if (avatarImg) myProfile.photoData = avatarImg.src;
-    // Receiver-side Recent Chat record lets the incoming conversation appear
-    // with a New Message badge (Firestore rules must permit this sender-owned update).
-    await saveRecentChat(myProfile, payload, 1, selectedUser.uid).catch(err => console.warn("Receiver recent-chat update blocked by Firestore Rules:", err));
+    input.value = "";
     clearSelectedImage();
 
-
+    // Best-effort recent chat updates. Firestore rules may independently
+    // restrict these writes; that must not undo or falsely fail the message.
+    try {
+      await saveRecentChat(selectedUser, payload, 0, currentUser.uid, activeChatSecret);
+    } catch (recentErr) {
+      console.warn("Sender recent-chat update blocked:", recentErr);
+    }
+    try {
+      const myProfile = {
+        uid: currentUser.uid,
+        name: $("myName").textContent || "Friend",
+        photoData: ""
+      };
+      const avatarImg = $("myAvatar").querySelector("img");
+      if (avatarImg) myProfile.photoData = avatarImg.src;
+      await saveRecentChat(myProfile, payload, 1, selectedUser.uid);
+    } catch (recentErr) {
+      console.warn("Receiver recent-chat update blocked:", recentErr);
+    }
   } catch (err) {
+    console.error("Message send failed:", err);
     alert("Message send nahi hua: " + friendlyError(err));
-    $("messageInput").value = oldText;
+    input.value = oldText;
+  } finally {
+    messageSendInProgress = false;
+    if (sendButton) sendButton.disabled = false;
+    input.focus();
   }
 });
 
@@ -1577,4 +1533,3 @@ $("messageForm").addEventListener("submit", async e => {
 
 </body>
 </html>
-
