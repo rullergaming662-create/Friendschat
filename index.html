@@ -491,7 +491,6 @@ import {
   onSnapshot,
   serverTimestamp,
   updateDoc,
-  deleteDoc,
   runTransaction
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
@@ -1018,15 +1017,17 @@ async function deleteSelectedMessages(forEveryone) {
 $("deleteForMeBtn").addEventListener("click", () => deleteSelectedMessages(false));
 $("deleteForEveryoneBtn").addEventListener("click", () => deleteSelectedMessages(true));
 
-// Clear the entire current conversation (removes messages for both participants).
+// Clear chat only for the current user; the other participant keeps their messages.
 $("clearChatBtn").addEventListener("click", async () => {
   if (!currentUser || !currentChatId) return;
-  if (!confirm("Clear the entire chat? This will delete all messages in this conversation for both people and cannot be undone.")) return;
+  if (!confirm("Clear this chat for you only? The other person will still see their messages.")) return;
   const button = $("clearChatBtn");
   button.disabled = true;
   try {
     const snapshot = await getDocs(collection(db, "chats", currentChatId, "messages"));
-    await Promise.all(snapshot.docs.map(item => deleteDoc(item.ref)));
+    await Promise.all(snapshot.docs.map(item => updateDoc(item.ref, {
+      hiddenFor: arrayUnion(currentUser.uid)
+    })));
     resetMessageSelection();
   } catch (err) {
     alert("Could not clear chat: " + friendlyError(err));
@@ -1069,6 +1070,7 @@ function openChat(friend) {
       snapshot.forEach(item => {
         const message = item.data();
         if (Array.isArray(message.deletedFor) && message.deletedFor.includes(currentUser.uid)) return;
+        if (Array.isArray(message.hiddenFor) && message.hiddenFor.includes(currentUser.uid)) return;
 
         const bubble = document.createElement("div");
 
@@ -1316,4 +1318,3 @@ $("messageForm").addEventListener("submit", async e => {
 
 </body>
 </html>
-
