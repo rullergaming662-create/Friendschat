@@ -323,7 +323,12 @@ button {
 
 .person-avatar-button { border:0; padding:0; background:transparent; flex:0 0 auto; border-radius:50%; cursor:pointer; }
 .person-avatar-button:focus-visible,.person-name-button:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
-.person-name-button { border:0; background:transparent; color:inherit; font:inherit; text-align:left; padding:8px 4px; flex:1; min-width:0; cursor:pointer; }
+.person-name-button { border:0; background:transparent; color:inherit; font:inherit; text-align:left; padding:8px 4px; flex:1; min-width:0; cursor:pointer; display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+.person-name-line {display:flex;align-items:center;gap:7px}
+.person-status {font-size:12px;color:var(--muted);line-height:1.2}
+.online-dot {display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;vertical-align:middle;flex:0 0 8px}
+.recent-person .recent-name {display:flex;align-items:center;gap:7px}
+.recent-person .person-status {font-size:11px;margin-top:2px}
 #myAvatar,#friendAvatar { cursor:pointer; }
 .profile-photo-viewer { position:fixed; inset:0; z-index:10000; background:rgba(3,6,14,.94); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
 .profile-photo-viewer.hidden { display:none; }
@@ -400,18 +405,14 @@ button {
   <button id="editProfileBtn" class="profile-icon" title="Profile settings" aria-label="Profile settings">⚙</button>
 </div>
 
-<div class="recent-section">
-  <div class="recent-heading">Recent Chats</div>
-  <div id="recentList" class="recent-list"><div class="empty">No recent chats yet. Search a friend to start chatting.</div></div>
-</div>
-<div class="recent-section">
-  <div class="recent-heading">Secret Chats</div>
-  <div id="secretRecentList" class="recent-list"><div class="empty">No secret chats yet.</div></div>
-</div>
-
 <div class="search">
   <input id="searchUsers"
     placeholder="Search friend by name">
+</div>
+
+<div class="recent-section">
+  <div class="recent-heading">Recent Chats</div>
+  <div id="recentList" class="recent-list"><div class="empty">No recent chats yet. Search a friend to start chatting.</div></div>
 </div>
 
 <div id="userList" class="user-list"></div>
@@ -432,7 +433,6 @@ button {
   <button id="backBtn" class="secondary">‹</button>
   <div class="avatar" id="friendAvatar">F</div>
   <div id="friendName" style="flex:1">Friend</div>
-  <button id="secretChatBtn" class="secondary" type="button">Move to Secret Chat</button>
   <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
 </div>
 
@@ -560,6 +560,8 @@ let selectedImageFile = null;
 let selectedImageData = "";
 let selectedAttachment = null;
 let allUsers = [];
+let unsubscribeUsers = null;
+let presenceHeartbeat = null;
 let messageSelectionMode = false;
 let selectedMessageIds = new Set();
 let currentChatId = "";
@@ -830,6 +832,10 @@ $("signupForm").addEventListener("submit", async e => {
   }
 });
 
+window.addEventListener("beforeunload", () => {
+  if (currentUser) setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
+});
+
 /* Settings and logout */
 $("settingsLogoutBtn").addEventListener("click", async () => { $("profileModal").classList.add("hidden"); await signOut(auth); });
 
@@ -850,8 +856,7 @@ async function saveRecentChat(peer, message, unreadCount, ownerUid = currentUser
     photoData: peer.photoData || "",
     lastMessage: recentPreview(message),
     lastMessageAt: message && message.createdAt ? message.createdAt : serverTimestamp(),
-    unreadCount: Math.max(0, Number(unreadCount || 0)),
-    isSecret: !!isSecret
+    unreadCount: Math.max(0, Number(unreadCount || 0))
   };
   await setDoc(doc(db, "users", ownerUid, "recentChats", peer.uid), record, { merge:true });
 }
@@ -872,17 +877,14 @@ function listenRecentChats() {
 }
 function renderRecentChats() {
   const normalList = $("recentList");
-  const secretList = $("secretRecentList");
-  if (!normalList || !secretList) return;
+  if (!normalList) return;
   normalList.innerHTML = "";
-  secretList.innerHTML = "";
   const sorted = [...recentChatRecords].sort((a,b) => {
     const av = a.lastMessageAt && a.lastMessageAt.toMillis ? a.lastMessageAt.toMillis() : (a.lastMessageAt instanceof Date ? a.lastMessageAt.getTime() : 0);
     const bv = b.lastMessageAt && b.lastMessageAt.toMillis ? b.lastMessageAt.toMillis() : (b.lastMessageAt instanceof Date ? b.lastMessageAt.getTime() : 0);
     return bv-av;
   });
-  const normal = sorted.filter(r => !r.isSecret);
-  const secret = sorted.filter(r => !!r.isSecret);
+  const normal = sorted;
   const renderRows = (records, list, emptyText) => {
     if (!records.length) { list.innerHTML = `<div class="empty">${emptyText}</div>`; return; }
     records.forEach(record => {
@@ -891,39 +893,31 @@ function renderRecentChats() {
       const avatar = document.createElement("div"); avatar.className = "avatar"; renderAvatar(avatar, peer.name, peer.photoData || "");
       const meta = document.createElement("div"); meta.className = "recent-meta";
       const name = document.createElement("div"); name.className = "recent-name"; name.textContent = peer.name;
+      if (peer.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
       const last = document.createElement("div"); last.className = "recent-last"; last.textContent = record.lastMessage || "Chat started";
       meta.append(name,last);
+      if (peer.online === true) { const status=document.createElement("div"); status.className="person-status"; status.textContent="Online"; meta.appendChild(status); }
       if (Number(record.unreadCount || 0) > 0) { const badge = document.createElement("span"); badge.className = "recent-badge"; badge.textContent = "New Message"; meta.appendChild(badge); }
-      row.append(avatar,meta); row.addEventListener("click", () => openChat(peer, !!record.isSecret)); list.appendChild(row);
+      row.append(avatar,meta); row.addEventListener("click", () => openChat(peer)); list.appendChild(row);
     });
   };
   renderRows(normal, normalList, "No recent chats yet. Search a friend to start chatting.");
-  renderRows(secret, secretList, "No secret chats yet.");
 }
 
-/* Load registered users */
+/* Load registered users and keep online presence live. */
 async function loadUsers() {
   if (!currentUser) return;
-
-  try {
-    const snapshot = await getDocs(
-      collection(db, "users")
-    );
-
+  if (unsubscribeUsers) unsubscribeUsers();
+  unsubscribeUsers = onSnapshot(collection(db, "users"), snapshot => {
     allUsers = snapshot.docs
       .map(d => d.data())
-      .filter(u =>
-        u.uid &&
-        u.uid !== currentUser.uid &&
-        u.name
-      );
-
+      .filter(u => u.uid && u.uid !== currentUser.uid && u.name);
     renderUsers();
-
-  } catch (err) {
-    $("userList").innerHTML =
-      `<div class="empty">${friendlyError(err)}</div>`;
-  }
+    renderRecentChats();
+  }, err => {
+    console.warn("Users listener:", err);
+    $("userList").innerHTML = `<div class="empty">${friendlyError(err)}</div>`;
+  });
 }
 
 $("searchUsers").addEventListener("input", renderUsers);
@@ -968,7 +962,12 @@ function renderUsers() {
     const name = document.createElement("button");
     name.type = "button";
     name.className = "person-name-button";
-    name.textContent = u.name;
+    const nameLine = document.createElement("span");
+    nameLine.className = "person-name-line";
+    nameLine.textContent = u.name;
+    if (u.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; nameLine.appendChild(dot); }
+    name.appendChild(nameLine);
+    if (u.online === true) { const status=document.createElement("span"); status.className="person-status"; status.textContent="Online"; name.appendChild(status); }
     name.addEventListener("click", () => openChat(u));
 
     row.append(avatarButton, name);
@@ -1168,22 +1167,9 @@ async function deleteSelectedMessages(forEveryone) {
 $("deleteForMeBtn").addEventListener("click", () => deleteSelectedMessages(false));
 $("deleteForEveryoneBtn").addEventListener("click", () => deleteSelectedMessages(true));
 
-// Move the current conversation between Recent Chats and Secret Chats (UI organization).
-$("secretChatBtn").addEventListener("click", async () => {
-  if (!currentUser || !selectedUser) return;
-  const nextSecret = !activeChatSecret;
-  try {
-    await saveRecentChat(selectedUser, {text:"Chat opened", createdAt:serverTimestamp()}, 0, currentUser.uid, nextSecret);
-    activeChatSecret = nextSecret;
-    $("clearChatBtn").classList.toggle("hidden", !activeChatSecret);
-    $("secretChatBtn").textContent = activeChatSecret ? "Move to Recent Chats" : "Move to Secret Chat";
-    renderRecentChats();
-  } catch (err) { alert("Could not update chat section: " + friendlyError(err)); }
-});
-
 // Clear chat only for the current user; the other participant keeps their messages.
 $("clearChatBtn").addEventListener("click", async () => {
-  if (!currentUser || !currentChatId || !activeChatSecret) return;
+  if (!currentUser || !currentChatId) return;
   if (!confirm("Clear this chat for you only? The other person will still see their messages.")) return;
   const button = $("clearChatBtn");
   button.disabled = true;
@@ -1203,9 +1189,8 @@ $("clearChatBtn").addEventListener("click", async () => {
 /* Open conversation */
 function openChat(friend, isSecret = false) {
   selectedUser = friend;
-  activeChatSecret = !!isSecret;
-  $("clearChatBtn").classList.toggle("hidden", !activeChatSecret);
-  $("secretChatBtn").textContent = activeChatSecret ? "Move to Recent Chats" : "Move to Secret Chat";
+  activeChatSecret = false;
+  $("clearChatBtn").classList.remove("hidden");
 
   $("chatEmpty").classList.add("hidden");
   $("activeChat").classList.remove("hidden");
@@ -1506,3 +1491,4 @@ $("messageForm").addEventListener("submit", async e => {
 
 </body>
 </html>
+
