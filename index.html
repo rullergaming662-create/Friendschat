@@ -1039,9 +1039,12 @@ function openChat(friend) {
           bubble.classList.add("selectable");
           const marker = document.createElement("span");
           marker.className = "selection-check";
-          marker.textContent = selectedMessageIds.has(item.id) ? "✓" : "";
+          marker.textContent = selectedMessageIds.has(item.id) ? "✓" : "○";
           bubble.appendChild(marker);
+          // In selection mode, tapping anywhere on the message bubble selects it.
+          // Keep audio controls, links and download buttons usable.
           bubble.addEventListener("click", event => {
+            if (event.target.closest("a,button,audio,video,input")) return;
             event.preventDefault();
             event.stopPropagation();
             toggleMessageSelection(item.id);
