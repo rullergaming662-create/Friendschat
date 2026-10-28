@@ -743,6 +743,8 @@ onAuthStateChanged(auth, async user => {
       renderAvatar($("myAvatar"), name, profile.photoData || "");
 
       await saveProfile(user, name);
+      // Mark this account online as soon as authentication is restored.
+      await setDoc(doc(db, "users", user.uid), { online:true, lastSeen:serverTimestamp() }, { merge:true });
       await loadUsers();
       listenRecentChats();
     } catch (err) {
@@ -836,7 +838,11 @@ window.addEventListener("beforeunload", () => {
 });
 
 /* Settings and logout */
-$("settingsLogoutBtn").addEventListener("click", async () => { $("profileModal").classList.add("hidden"); await signOut(auth); });
+$("settingsLogoutBtn").addEventListener("click", async () => {
+  $("profileModal").classList.add("hidden");
+  if (currentUser) await setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
+  await signOut(auth);
+});
 
 /* Recent chats: only users with a conversation are listed, newest activity first. */
 function recentPreview(data) {
@@ -1229,8 +1235,20 @@ function openChat(friend, isSecret = false) {
       const latestDoc = visibleDocs.length ? visibleDocs[visibleDocs.length - 1] : null;
       if (latestDoc) {
         const latestMessage = latestDoc.data();
+        const incoming = latestMessage.senderId !== currentUser.uid;
+        // When the recipient is currently viewing this chat, update their own
+        // recent-chat record too; unread badge is cleared while the chat is open.
         saveRecentChat(friend, latestMessage, 0, currentUser.uid, activeChatSecret).catch(err => console.warn(err));
       }
+      // Keep the sender's recent chat updated whenever messages arrive in this
+      // active conversation. The receiver's own recent record is also refreshed.
+      snapshot.docs.forEach(item => {
+        const m = item.data();
+        if (m.senderId !== currentUser.uid && m.receiverId === currentUser.uid) {
+          const sender = allUsers.find(u => u.uid === m.senderId) || {uid:m.senderId,name:friend.name,photoData:friend.photoData||""};
+          saveRecentChat(sender, m, 0, currentUser.uid, false).catch(err => console.warn("Receiver recent chat:", err));
+        }
+      });
       $("messages").innerHTML = "";
 
       snapshot.forEach(item => {
