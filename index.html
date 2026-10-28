@@ -290,6 +290,12 @@ button {
   .sidebar.chat-open { display:none; }
   .chat.chat-open { display:flex; }
 }
+
+.call-actions{margin-left:auto;display:flex;gap:7px}.call-action{background:#263657;color:#fff;padding:10px;border-radius:12px;font-size:18px}
+.call-modal{position:fixed;inset:0;z-index:200;background:#050812ee;display:flex;align-items:center;justify-content:center;padding:16px}
+.call-card{width:min(100%,560px);background:#171e30;border:1px solid #394765;border-radius:20px;padding:18px;text-align:center}
+.call-videos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.call-videos video{width:100%;background:#080b12;border-radius:12px;min-height:150px;object-fit:cover}
+.call-controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.call-controls button{background:#293957;color:white}.call-controls .danger{background:#d94455}.call-status{color:#aebaff;margin:8px 0}
 </style>
 </head>
 
@@ -429,6 +435,10 @@ button {
   </div>
 </div>
 
+<div id="callModal" class="call-modal hidden" role="dialog" aria-modal="true"><div class="call-card">
+<h2 id="callTitle">Call</h2><div id="callStatus" class="call-status">Connecting…</div>
+<div class="call-videos"><video id="remoteVideo" autoplay playsinline></video><video id="localVideo" autoplay playsinline muted></video></div>
+<div class="call-controls"><button id="muteCallBtn" type="button">🎙 Mute</button><button id="cameraCallBtn" type="button">📷 Camera off</button><button id="endCallBtn" class="danger" type="button">End call</button><button id="rejectCallBtn" class="danger hidden" type="button">Reject</button><button id="acceptCallBtn" class="hidden" type="button">Accept</button></div></div></div>
 <script type="module">
 
 import {
@@ -656,6 +666,7 @@ onAuthStateChanged(auth, async user => {
   workspace.classList.toggle("hidden", !user);
 
   if (user) {
+    listenIncomingCalls();
     try {
       await authPersistenceReady;
       const profileSnap = await getDoc(doc(db, "users", user.uid));
@@ -1090,8 +1101,72 @@ $("messageForm").addEventListener("submit", async e => {
   }
 });
 
+
+// WebRTC signaling via Firestore. STUN is provided; a TURN server may be required
+// for reliable connectivity across restrictive networks.
+const rtcConfig={iceServers:[{urls:"stun:stun.l.google.com:19302"}]};
+let activeCallId=null,pc=null,localStream=null,callUnsubs=[],incomingUnsub=null,incomingData=null,callMode="voice",accepted=false;
+const callRef=id=>doc(db,"calls",id);
+function callStatus(t){$("callStatus").textContent=t;}
+function callModal(title){$("callTitle").textContent=title;$("callModal").classList.remove("hidden");}
+function stopCallUnsubs(){callUnsubs.forEach(f=>f());callUnsubs=[];}
+function stopCallMedia(){if(localStream)localStream.getTracks().forEach(t=>t.stop());localStream=null;$("localVideo").srcObject=null;}
+function closeCall(){ $("callModal").classList.add("hidden");$("remoteVideo").srcObject=null;$("localVideo").srcObject=null;}
+async function media(mode){if(!navigator.mediaDevices?.getUserMedia)throw Error("Camera/microphone unavailable. Use HTTPS and a supported browser.");return navigator.mediaDevices.getUserMedia({audio:true,video:mode==="video"});}
+function createPeer(id,caller){
+ const c=new RTCPeerConnection(rtcConfig);pc=c;
+ c.ontrack=e=>{if(e.streams[0])$("remoteVideo").srcObject=e.streams[0];};
+ c.onconnectionstatechange=()=>{if(c.connectionState==="connected")callStatus("Connected");if(["failed","disconnected"].includes(c.connectionState))callStatus("Connection interrupted");};
+ c.onicecandidate=e=>{if(e.candidate)addDoc(collection(db,"calls",id,caller?"callerCandidates":"calleeCandidates"),e.candidate.toJSON()).catch(console.error);};
+ if(localStream)localStream.getTracks().forEach(t=>c.addTrack(t,localStream));
+ const other=caller?"calleeCandidates":"callerCandidates";
+ callUnsubs.push(onSnapshot(collection(db,"calls",id,other),snap=>snap.docChanges().forEach(ch=>{if(ch.type==="added"&&c.remoteDescription)c.addIceCandidate(new RTCIceCandidate(ch.doc.data())).catch(console.error);})));
+ return c;
+}
+async function startCall(mode){
+ if(!currentUser||!selectedUser||activeCallId)return;
+ if(!window.isSecureContext){alert("Calling requires HTTPS. GitHub Pages uses HTTPS.");return;}
+ try{
+  callMode=mode;accepted=false;localStream=await media(mode);$("localVideo").srcObject=localStream;
+  $("localVideo").classList.toggle("hidden",mode!=="video");$("remoteVideo").classList.toggle("hidden",mode!=="video");$("cameraCallBtn").classList.toggle("hidden",mode!=="video");
+  $("acceptCallBtn").classList.add("hidden");$("rejectCallBtn").classList.add("hidden");$("endCallBtn").classList.remove("hidden");
+  callModal(mode==="video"?"Video call":"Voice call");callStatus("Calling "+selectedUser.name+"…");
+  const ref=doc(collection(db,"calls"));activeCallId=ref.id;const c=createPeer(ref.id,true);
+  const offer=await c.createOffer();await c.setLocalDescription(offer);
+  await setDoc(ref,{callerId:currentUser.uid,callerName:$("myName").textContent,calleeId:selectedUser.uid,calleeName:selectedUser.name,type:mode,status:"ringing",offer:{type:offer.type,sdp:offer.sdp},createdAt:serverTimestamp()});
+  callUnsubs.push(onSnapshot(ref,async snap=>{const d=snap.data();if(!d)return;if(d.status==="accepted"&&!accepted){accepted=true;if(d.answer){await c.setRemoteDescription(new RTCSessionDescription(d.answer));callStatus("Connecting…");}}if(["rejected","ended"].includes(d.status)){callStatus(d.status==="rejected"?"Call rejected":"Call ended");setTimeout(()=>finishCall(false),900);}}));
+ }catch(e){alert("Call start failed: "+(e.message||e));await finishCall(false);}
+}
+async function acceptCall(){
+ if(!incomingData||!activeCallId)return;
+ try{localStream=await media(callMode);$("localVideo").srcObject=localStream;const c=createPeer(activeCallId,false);
+ await c.setRemoteDescription(new RTCSessionDescription(incomingData.offer));const answer=await c.createAnswer();await c.setLocalDescription(answer);
+ await updateDoc(callRef(activeCallId),{status:"accepted",answer:{type:answer.type,sdp:answer.sdp}});
+ accepted=true;callStatus("Connecting…");$("acceptCallBtn").classList.add("hidden");$("rejectCallBtn").classList.add("hidden");$("endCallBtn").classList.remove("hidden");
+ }catch(e){alert("Could not accept call: "+(e.message||e));await finishCall(true);}
+}
+async function finishCall(updateRemote=true){
+ const id=activeCallId;if(updateRemote&&id&&currentUser)try{await updateDoc(callRef(id),{status:"ended",endedAt:serverTimestamp()});}catch(e){}
+ stopCallUnsubs();if(pc){pc.close();pc=null;}stopCallMedia();activeCallId=null;incomingData=null;accepted=false;closeCall();
+}
+$("voiceCallBtn").addEventListener("click",()=>startCall("voice"));$("videoCallBtn").addEventListener("click",()=>startCall("video"));
+$("endCallBtn").addEventListener("click",()=>finishCall(true));$("acceptCallBtn").addEventListener("click",acceptCall);
+$("rejectCallBtn").addEventListener("click",async()=>{if(activeCallId)try{await updateDoc(callRef(activeCallId),{status:"rejected"});}catch(e){}await finishCall(false);});
+$("muteCallBtn").addEventListener("click",()=>{const t=localStream?.getAudioTracks()[0];if(t){t.enabled=!t.enabled;$("muteCallBtn").textContent=t.enabled?"🎙 Mute":"🎙 Unmute";}});
+$("cameraCallBtn").addEventListener("click",()=>{const t=localStream?.getVideoTracks()[0];if(t){t.enabled=!t.enabled;$("cameraCallBtn").textContent=t.enabled?"📷 Camera off":"📷 Camera on";}});
+function listenIncomingCalls(){
+ if(incomingUnsub)incomingUnsub();if(!currentUser)return;
+ incomingUnsub=onSnapshot(query(collection(db,"calls"),where("calleeId","==",currentUser.uid),where("status","==","ringing")),snap=>{
+  snap.docChanges().forEach(ch=>{if(ch.type!=="added"||activeCallId)return;const d=ch.doc.data();if(d.callerId===currentUser.uid)return;
+   activeCallId=ch.doc.id;incomingData=d;callMode=d.type||"voice";accepted=false;
+   $("localVideo").classList.toggle("hidden",callMode!=="video");$("remoteVideo").classList.toggle("hidden",callMode!=="video");$("cameraCallBtn").classList.toggle("hidden",callMode!=="video");
+   $("acceptCallBtn").classList.remove("hidden");$("rejectCallBtn").classList.remove("hidden");$("endCallBtn").classList.add("hidden");
+   callModal("Incoming "+(callMode==="video"?"video":"voice")+" call from "+(d.callerName||"Friend"));callStatus("Incoming call…");
+  });
+ },console.error);
+}
+
 </script>
 
 </body>
 </html>
-
