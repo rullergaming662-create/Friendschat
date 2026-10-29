@@ -15,50 +15,6 @@
   --line:#293149;
 }
 
-/* Light theme palette; dark remains the default. */
-:root[data-theme="light"] {
-  --bg:#f3f5fb;
-  --panel:#ffffff;
-  --primary:#5968e8;
-  --text:#182033;
-  --muted:#68738a;
-  --line:#dce2ef;
-}
-:root[data-theme="light"] body { background:var(--bg); color:var(--text); }
-:root[data-theme="light"] input {
-  background:#f8faff;
-  color:#182033;
-  border-color:#dce2ef;
-}
-:root[data-theme="light"] .secondary,
-:root[data-theme="light"] .auth-tabs,
-:root[data-theme="light"] .attach-menu,
-:root[data-theme="light"] .message-select-bar { background:#e9edf8; color:#182033; }
-:root[data-theme="light"] .auth-tab { color:#68738a; }
-:root[data-theme="light"] .auth-tab.active { color:#fff; }
-:root[data-theme="light"] .bubble { background:#e8edf8; color:#182033; }
-:root[data-theme="light"] .bubble.mine { background:#dce3ff; }
-:root[data-theme="light"] .person { color:#182033; }
-:root[data-theme="light"] .person.active,
-:root[data-theme="light"] .recent-person:hover { background:#e9edf8; }
-:root[data-theme="light"] .chat-head,
-:root[data-theme="light"] .composer,
-:root[data-theme="light"] .image-preview-wrap { background:#fff; }
-:root[data-theme="light"] .attach-option { color:#182033; }
-:root[data-theme="light"] .attach-option:hover,
-:root[data-theme="light"] .attach-option:focus { background:#dce3f5; }
-:root[data-theme="light"] .photo-viewer { background:#f3f5fb; }
-:root[data-theme="light"] .photo-viewer-actions a,
-:root[data-theme="light"] .photo-viewer-actions button { background:#dce3f5; color:#182033; }
-:root[data-theme="light"] .modal-card { background:#fff; color:#182033; }
-:root[data-theme="light"] .modal-close { background:#e9edf8; color:#182033; }
-:root[data-theme="light"] .message-select-bar button { background:#d2daf0; color:#182033; }
-:root[data-theme="light"] .message-select-bar button.danger { background:#a8324a; color:#fff; }
-:root[data-theme="light"] .selection-check { background:#fff; color:#5968e8; border-color:#5968e8; }
-:root[data-theme="light"] .selection-check.checked { background:#5968e8; color:#fff; border-color:#5968e8; }\n:root[data-theme="light"] .message-select-bar { box-shadow:0 -5px 18px #24345b12; }
-.theme-toggle { flex:0 0 auto; background:#27314b; color:#fff; border:1px solid #ffffff30; border-radius:12px; padding:10px 13px; font-size:14px; font-weight:700; }
-:root[data-theme="light"] .theme-toggle { background:#fff; color:#182033; border-color:#dce2ef; }
-
 * { box-sizing:border-box; }
 
 body {
@@ -263,7 +219,7 @@ button {
   background:var(--panel);
 }
 
-.composer input { flex:1;min-width:0; }\n#messageForm > button.primary { flex:0 0 52px;width:52px;height:52px;display:grid;place-items:center;padding:0;border-radius:16px;background:linear-gradient(145deg,#6577ff,#4f55d9);color:#fff;font-size:26px;font-weight:800;box-shadow:0 5px 16px #6577ff44;border:1px solid #ffffff24;transition:transform .12s ease,filter .12s ease; }\n#messageForm > button.primary:active { transform:scale(.94);filter:brightness(.95); }\n#messageForm > button.primary:disabled { opacity:.55;box-shadow:none; }\n@media (max-width:480px) { .message-select-bar { gap:7px;padding:9px; } .message-select-bar #selectedMessageCount { flex-basis:100%; } .message-select-bar button { flex:1 1 auto; } .message-select-bar button.danger { flex-basis:100%; } .selection-check { left:-31px;width:24px;height:24px; } }
+.composer input { flex:1;min-width:0; }
 .attach-wrap {position:relative;display:flex;align-items:center}
 .attach-button {display:grid;place-items:center;width:48px;height:48px;flex-shrink:0;border-radius:16px;background:linear-gradient(145deg,#8b5cf6,#4f7cff);color:white;box-shadow:0 5px 16px #6577ff44;border:1px solid #ffffff20;transition:transform .16s ease}
 .attach-button:active {transform:scale(.94)}
@@ -305,23 +261,20 @@ button {
 .photo-viewer-actions {display:flex;gap:10px;margin-top:12px}
 .photo-viewer-actions a,.photo-viewer-actions button {background:#27314b;color:white;padding:10px 16px;border-radius:10px;text-decoration:none}
 
-.message-select-bar {display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--panel);border-top:1px solid var(--line);flex-wrap:wrap;box-shadow:0 -5px 18px #0000000b}
+.message-select-bar {display:flex;align-items:center;gap:8px;padding:9px 12px;background:#202941;border-top:1px solid var(--line);flex-wrap:wrap}
 .message-select-bar.hidden {display:none!important}
-.message-select-bar button {background:#303b55;color:#edf1ff;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:600;min-height:42px;transition:transform .12s ease,opacity .12s ease}
-.message-select-bar button.danger {background:linear-gradient(135deg,#d9435b,#a91f3b);color:#fff;box-shadow:0 4px 12px #a8324a33}
+.message-select-bar button {background:#39486a;color:#edf1ff;padding:9px 12px;border-radius:9px}
+.message-select-bar button.danger {background:#a8324a}
 .message-select-bar button:disabled {opacity:.45;cursor:not-allowed}
 .bubble.selectable {cursor:default;position:relative}
 .bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
-.bubble {content-visibility:auto;contain-intrinsic-size:auto 52px}
-.selection-check {position:absolute;left:-34px;top:12px;display:grid;place-items:center;flex:0 0 26px;width:26px;height:26px;border-radius:50%;border:2px solid #9aa9d0;background:#111827;color:white;font-size:15px;font-weight:800;margin:0;padding:0;cursor:pointer;box-shadow:0 2px 8px #0002;z-index:2;transition:transform .12s ease,background .12s ease,border-color .12s ease}
+.selection-check {display:inline-grid;place-items:center;flex:0 0 22px;width:22px;height:22px;border-radius:6px;border:2px solid #9aa9d0;background:#111827;color:white;font-size:14px;font-weight:bold;margin:0 8px 0 0;padding:0;vertical-align:middle;cursor:pointer}
 .selection-check.checked {background:#6577ff;border-color:#aebaff}
 .selection-check:focus-visible {outline:2px solid white;outline-offset:2px}
-.message-select-bar button {background:#303b55;color:#edf1ff;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:600;min-height:42px;transition:transform .12s ease,opacity .12s ease}
-.message-select-bar button.danger {background:linear-gradient(135deg,#d9435b,#a91f3b);color:#fff;box-shadow:0 4px 12px #a8324a33}
+.message-select-bar button {background:#39486a;color:#edf1ff;padding:9px 12px;border-radius:9px}
+.message-select-bar button.danger {background:#a8324a}
 .message-select-bar button:disabled {opacity:.45;cursor:not-allowed}
 .bubble.selectable {cursor:pointer;position:relative;user-select:none;-webkit-user-select:none;touch-action:pan-y}
-/* Keep the selection tick in the blank space just before each message bubble. */
-.bubble .selection-check {position:absolute;left:-29px;top:7px;margin:0;z-index:3;box-shadow:0 1px 4px #0002;}
 .bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
 .selection-check {display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#6577ff;color:white;font-size:13px;font-weight:bold;margin-right:7px;vertical-align:middle}
 .empty {
@@ -386,6 +339,9 @@ button {
 
 .startup-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--bg,#0e1422);color:var(--text,#eef2ff);font-weight:700;font-size:18px;letter-spacing:.2px}
 .startup-screen.hidden{display:none}
+
+.send-button { min-width:54px; min-height:54px; border-radius:16px; font-size:25px; font-weight:800; display:grid; place-items:center; box-shadow:0 5px 16px rgba(101,119,255,.24); }
+.send-button:active { transform:scale(.96); }
 </style>
 </head>
 
@@ -439,7 +395,6 @@ button {
     <div class="brand">◉ Chatzapp</div>
     <div class="sub">Private chats with your friends</div>
   </div>
-  <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
 
 </header>
 
@@ -514,7 +469,7 @@ button {
     placeholder="Type a message..."
     autocomplete="off">
 
-  <button class="primary" type="submit" aria-label="Send message" title="Send message"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" aria-hidden="true"><path d="M3 20.5 21 12 3 3.5l2.2 7.1L15 12l-9.8 1.4L3 20.5Z" fill="currentColor"/></svg></button>
+  <button class="primary send-button" type="submit" aria-label="Send message" title="Send">➤</button>
 </form>
 
 </div>
@@ -774,7 +729,20 @@ async function saveProfile(user, name, photoData = "") {
 }
 
 /* Authentication */
+// Fail-safe: if Firebase module/auth initialization is delayed or fails,
+// reveal the sign-in screen instead of leaving the user on an endless loader.
+const startupFailSafe = setTimeout(() => {
+  const startup = $("startupScreen");
+  if (startup && !startup.classList.contains("hidden")) {
+    startup.classList.add("hidden");
+    authSection.classList.remove("hidden");
+    workspace.classList.add("hidden");
+    showError("signinError", "Loading took too long. Check your internet connection and refresh.");
+  }
+}, 7000);
+
 onAuthStateChanged(auth, async user => {
+  clearTimeout(startupFailSafe);
   currentUser = user;
   // Firebase restores browserLocalPersistence before deciding which screen to show.
   $("startupScreen").classList.add("hidden");
@@ -791,8 +759,6 @@ onAuthStateChanged(auth, async user => {
       renderAvatar($("myAvatar"), name, profile.photoData || "");
 
       await saveProfile(user, name);
-      // Mark this account online as soon as authentication is restored.
-      await setDoc(doc(db, "users", user.uid), { online:true, lastSeen:serverTimestamp() }, { merge:true });
       await loadUsers();
       listenRecentChats();
     } catch (err) {
@@ -886,11 +852,7 @@ window.addEventListener("beforeunload", () => {
 });
 
 /* Settings and logout */
-$("settingsLogoutBtn").addEventListener("click", async () => {
-  $("profileModal").classList.add("hidden");
-  if (currentUser) await setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
-  await signOut(auth);
-});
+$("settingsLogoutBtn").addEventListener("click", async () => { $("profileModal").classList.add("hidden"); await signOut(auth); });
 
 /* Recent chats: only users with a conversation are listed, newest activity first. */
 function recentPreview(data) {
@@ -1283,20 +1245,8 @@ function openChat(friend, isSecret = false) {
       const latestDoc = visibleDocs.length ? visibleDocs[visibleDocs.length - 1] : null;
       if (latestDoc) {
         const latestMessage = latestDoc.data();
-        const incoming = latestMessage.senderId !== currentUser.uid;
-        // When the recipient is currently viewing this chat, update their own
-        // recent-chat record too; unread badge is cleared while the chat is open.
         saveRecentChat(friend, latestMessage, 0, currentUser.uid, activeChatSecret).catch(err => console.warn(err));
       }
-      // Keep the sender's recent chat updated whenever messages arrive in this
-      // active conversation. The receiver's own recent record is also refreshed.
-      snapshot.docs.forEach(item => {
-        const m = item.data();
-        if (m.senderId !== currentUser.uid && m.receiverId === currentUser.uid) {
-          const sender = allUsers.find(u => u.uid === m.senderId) || {uid:m.senderId,name:friend.name,photoData:friend.photoData||""};
-          saveRecentChat(sender, m, 0, currentUser.uid, false).catch(err => console.warn("Receiver recent chat:", err));
-        }
-      });
       $("messages").innerHTML = "";
 
       snapshot.forEach(item => {
@@ -1507,80 +1457,55 @@ $("backBtn").addEventListener("click", () => {
   $("chatPanel").classList.remove("chat-open");
 });
 
-/* Send text, photo, audio, or file */
-let messageSendInProgress = false;
+/* Send text, photo, or photo with a caption */
 $("messageForm").addEventListener("submit", async e => {
   e.preventDefault();
-  if (messageSendInProgress) return;
 
-  const input = $("messageInput");
-  const text = input.value.trim();
+  const text = $("messageInput").value.trim();
   const imageData = selectedImageData;
   const attachment = selectedAttachment;
 
-  if ((!text && !imageData) || !currentUser || !selectedUser) return;
+  if ((!text && !imageData) || !currentUser || !selectedUser) {
+    return;
+  }
 
   const chatId = conversationId(currentUser.uid, selectedUser.uid);
+
   const payload = {
     type: attachment ? attachment.type : (imageData ? "image" : "text"),
-    text,
+    text: text,
     senderId: currentUser.uid,
     receiverId: selectedUser.uid,
     createdAt: serverTimestamp(),
     readAt: null
   };
   if (imageData) payload.imageData = imageData;
-  if (attachment) {
-    payload.fileName = attachment.name;
-    payload.mimeType = attachment.mimeType;
-  }
+  if (attachment) { payload.fileName=attachment.name; payload.mimeType=attachment.mimeType; }
 
-  const oldText = input.value;
-  messageSendInProgress = true;
-  const sendButton = $("sendBtn");
-  if (sendButton) sendButton.disabled = true;
+  const oldText = $("messageInput").value;
+  $("messageInput").value = "";
 
   try {
-    // The message itself is the primary operation. Do not treat recent-chat
-    // metadata failures as a failed message after the message was committed.
     await addDoc(collection(db, "chats", chatId, "messages"), payload);
-    input.value = "";
+    // Sender's recent list: move this conversation to the top.
+    await saveRecentChat(selectedUser, payload, 0, currentUser.uid, activeChatSecret);
+    // Receiver's recent list: show a New Message badge.
+    const myProfile = { uid: currentUser.uid, name: $("myName").textContent || "Friend", photoData: "" };
+    const avatarImg = $("myAvatar").querySelector("img");
+    if (avatarImg) myProfile.photoData = avatarImg.src;
+    // Receiver-side Recent Chat record lets the incoming conversation appear
+    // with a New Message badge (Firestore rules must permit this sender-owned update).
+    await saveRecentChat(myProfile, payload, 1, selectedUser.uid).catch(err => console.warn("Receiver recent-chat update blocked by Firestore Rules:", err));
     clearSelectedImage();
 
-    // Best-effort recent chat updates. Firestore rules may independently
-    // restrict these writes; that must not undo or falsely fail the message.
-    try {
-      await saveRecentChat(selectedUser, payload, 0, currentUser.uid, activeChatSecret);
-    } catch (recentErr) {
-      console.warn("Sender recent-chat update blocked:", recentErr);
-    }
-    try {
-      const myProfile = {
-        uid: currentUser.uid,
-        name: $("myName").textContent || "Friend",
-        photoData: ""
-      };
-      const avatarImg = $("myAvatar").querySelector("img");
-      if (avatarImg) myProfile.photoData = avatarImg.src;
-      await saveRecentChat(myProfile, payload, 1, selectedUser.uid);
-    } catch (recentErr) {
-      console.warn("Receiver recent-chat update blocked:", recentErr);
-    }
+
   } catch (err) {
-    console.error("Message send failed:", err);
     alert("Message send nahi hua: " + friendlyError(err));
-    input.value = oldText;
-  } finally {
-    messageSendInProgress = false;
-    if (sendButton) sendButton.disabled = false;
-    input.focus();
+    $("messageInput").value = oldText;
   }
 });
 
-    <div class="sub">Private chats with your friends</div>
-  </div>
-  <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
+</script>
 
-</header>
-
-<div id="main">
+</body>
+</html>
