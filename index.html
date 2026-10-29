@@ -414,7 +414,7 @@ button {
 .reaction-emoji{background:transparent;border:0;border-radius:8px;padding:5px 0;font-size:23px;line-height:1.2;display:grid;place-items:center;min-width:0}
 .reaction-emoji:hover,.reaction-emoji:focus-visible{background:color-mix(in srgb,var(--primary) 20%,var(--panel));outline:1px solid var(--primary)}
 .reaction-picker-label{font-size:11px;color:var(--muted);padding:0 2px}
-.bubble{touch-action:manipulation}
+.bubble{touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 @media(max-width:650px){.reaction-picker{width:min(300px,82vw)}.reaction-emoji-grid{max-height:190px}.reaction-emoji{font-size:22px}}
 </style>
 </head>
@@ -1548,10 +1548,16 @@ function openChat(friend, isSecret = false) {
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
           };
-          // Long-press opens the reaction bar and selects the message for deletion.
+          // Long-press on either sent or received message opens reactions.
+          // Avoid relying on event.target because it may be nested text/media.
           bubble.addEventListener("message-longpress", event => {
-            if (event.target.closest("button,a,audio")) return;
-            openPicker(event);
+            event.preventDefault?.();
+            event.stopPropagation?.();
+            document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{
+              if(other!==quickbar && other!==picker) other.classList.add("hidden");
+            });
+            picker.classList.add("hidden");
+            quickbar.classList.remove("hidden");
           });
           // Keep double-tap support too.
           bubble.addEventListener("dblclick", event => {
