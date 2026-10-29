@@ -383,6 +383,141 @@ button {
 
 .startup-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--bg,#0e1422);color:var(--text,#eef2ff);font-weight:700;font-size:18px;letter-spacing:.2px}
 .startup-screen.hidden{display:none}
+
+/* WhatsApp-inspired visual refresh: clean headers, rounded chat and familiar icons. */
+:root { --wa-green:#075e54; --wa-green-bright:#00a884; }
+body { background:#0b141a; font-family:Roboto,Arial,sans-serif; }
+#app { max-width:100%; }
+#workspace > header { background:#075e54; color:#fff; min-height:76px; padding:14px 18px; }
+#workspace .brand { font-size:25px; letter-spacing:-.3px; }
+#workspace .sub { font-size:13px; opacity:.86; }
+:root[data-theme="light"] #workspace > header { background:#128c7e; color:#fff; }
+.theme-toggle { border-radius:22px; padding:10px 16px; background:#0b5149; color:#fff; }
+:root[data-theme="light"] .theme-toggle { background:#fff; color:#075e54; }
+#main { background:#0b141a; }
+.sidebar { background:#111b21; border-color:#26343b; }
+.me { background:#111b21; }
+.search input { background:#202c33; border:0; border-radius:10px; color:#e9edef; }
+.person,.recent-person { background:#111b21; color:#e9edef; border-bottom-color:#202c33; }
+.person.active,.recent-person:hover { background:#202c33; }
+.chat { background:#0b141a; }
+.chat-head { background:#202c33; color:#e9edef; padding:10px 14px; min-height:66px; border-bottom:1px solid #26343b; }
+.chat-head .secondary { border-radius:50%; width:42px; height:42px; padding:0; background:transparent; color:#d1d7db; font-size:26px; }
+#friendName { font-size:17px; font-weight:500; }
+#clearChatBtn { border-radius:9px; }
+.messages { padding:14px clamp(12px,3vw,28px); gap:8px; background-color:#0b141a; background-image:radial-gradient(circle at 20% 30%,#17232a 0 1px,transparent 1.5px),radial-gradient(circle at 80% 60%,#17232a 0 1px,transparent 1.5px); background-size:36px 36px,48px 48px; }
+.bubble { max-width:min(82%,560px); background:#202c33; color:#e9edef; border-radius:9px 9px 9px 2px; padding:9px 11px 7px; box-shadow:0 1px 1px #0002; }
+.bubble.mine { background:#005c4b; border-radius:9px 9px 2px 9px; }
+.time { color:#aebac1; font-size:11px; }
+.composer { position:relative; align-items:center; gap:5px; padding:9px 10px; background:#202c33; border-top:1px solid #26343b; }
+.composer input { margin:0; border:0; border-radius:24px; background:#2a3942; color:#e9edef; padding:13px 15px; min-height:48px; }
+.composer input::placeholder { color:#8696a0; }
+.attach-button { width:42px; height:42px; min-width:42px; border-radius:50%; background:transparent; box-shadow:none; border:0; color:#aebac1; }
+.attach-button svg { width:24px; height:24px; }
+.composer-icon { display:grid; place-items:center; width:38px; height:42px; padding:0; flex:0 0 38px; color:#aebac1; background:transparent; border-radius:50%; }
+.composer-icon svg,.send-button svg { width:23px; height:23px; }
+.send-button { display:grid; place-items:center; width:48px; height:48px; flex:0 0 48px; padding:0; border-radius:50%; background:#00a884; color:#fff; box-shadow:none; }
+.send-button:disabled { opacity:.5; }
+.emoji-panel { position:absolute; bottom:64px; left:8px; z-index:40; width:min(300px,90vw); padding:9px; border-radius:14px; background:#202c33; border:1px solid #34434b; box-shadow:0 12px 32px #0008; display:grid; grid-template-columns:repeat(8,1fr); gap:3px; }
+.emoji-panel.hidden { display:none!important; }
+.emoji-panel button { padding:7px 0; font-size:21px; background:transparent; border-radius:8px; }
+.emoji-panel button:hover { background:#34434b; }
+.attach-menu { background:#202c33; border-color:#34434b; }
+.attach-option:hover,.attach-option:focus { background:#34434b; }
+.message-select-bar { background:#202c33; border-color:#34434b; }
+.message-select-bar button { border-radius:20px; }
+.message-select-bar button.danger { background:#b42335; }
+:root[data-theme="light"] #main,:root[data-theme="light"] .chat,:root[data-theme="light"] .messages { background:#efeae2; }
+:root[data-theme="light"] .sidebar,:root[data-theme="light"] .me,:root[data-theme="light"] .person,:root[data-theme="light"] .recent-person { background:#fff; color:#111b21; }
+:root[data-theme="light"] .chat-head { background:#f0f2f5; color:#111b21; }
+:root[data-theme="light"] .bubble { background:#fff; color:#111b21; }
+:root[data-theme="light"] .bubble.mine { background:#d9fdd3; }
+:root[data-theme="light"] .composer { background:#f0f2f5; }
+:root[data-theme="light"] .composer input { background:#fff; color:#111b21; }
+:root[data-theme="light"] .composer-icon { color:#54656f; }
+:root[data-theme="light"] .send-button { background:#00a884; color:#fff; }
+@media(max-width:650px) {
+  #workspace > header { min-height:70px; padding:12px 14px; }
+  .chat-head { padding:8px 10px; }
+  .messages { padding:12px 10px; }
+  .composer { padding:7px 6px; gap:2px; }
+  .composer-icon { width:32px; flex-basis:32px; }
+  .attach-button { width:36px; min-width:36px; }
+  .send-button { width:44px; height:44px; flex-basis:44px; }
+  .composer input { padding:12px 13px; }
+}
+
+
+/* Chatzapp WhatsApp-inspired UI refresh */
+:root { --wa-teal:#075e54; --wa-accent:#00a884; --wa-out:#075e54; --wa-in:#202c33; }
+html,body { min-height:100%; }
+body { font-family:Roboto,"Segoe UI",Arial,sans-serif; background:#0b141a; }
+#workspace > header { background:#075e54; color:#f1f5f6; padding:14px 18px; min-height:76px; }
+#workspace .brand { font-size:25px; font-weight:750; letter-spacing:-.35px; }
+#workspace .sub { font-size:13px; opacity:.86; }
+#main { background:#0b141a; }
+.sidebar { background:#111b21; border-right:1px solid #26343b; }
+.me { background:#111b21; color:#e9edef; }
+.search input { border:0; border-radius:22px; background:#202c33; color:#e9edef; }
+.person,.recent-person { background:#111b21; color:#e9edef; border-bottom-color:#202c33; }
+.person.active,.recent-person:hover { background:#202c33; }
+.chat { background:#0b141a; }
+.chat-head { background:#111b21; color:#e9edef; padding:9px 12px; min-height:70px; border-bottom:1px solid #26343b; gap:10px; }
+.chat-head .chat-back { border:0; border-radius:50%; width:38px; height:38px; padding:0; background:transparent; color:#e9edef; font-size:30px; line-height:1; }
+.chat-head .avatar { width:42px; height:42px; }
+.friend-title-wrap { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+#friendName { font-size:17px; font-weight:500; color:#e9edef; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#friendStatus { font-size:12px; color:#aebac1; }
+.chat-head-actions { display:flex; align-items:center; gap:4px; }
+.head-icon-btn { display:grid; place-items:center; width:38px; height:38px; border:0; border-radius:50%; color:#e9edef; background:transparent; cursor:pointer; }
+.head-icon-btn svg { width:22px; height:22px; }
+.head-icon-btn:active { background:#26343b; }
+#clearChatBtn { border-radius:9px; font-size:12px; padding:8px 10px; background:#202c33; color:#d9e2e6; }
+.messages { padding:14px clamp(10px,3vw,28px); gap:8px; background-color:#0b141a;
+ background-image:radial-gradient(circle at 12% 25%,#17232a 0 1px,transparent 1.5px),radial-gradient(circle at 82% 68%,#17232a 0 1px,transparent 1.5px),radial-gradient(circle at 55% 12%,#17232a 0 1px,transparent 1.5px);
+ background-size:36px 36px,48px 48px,58px 58px; }
+.bubble { max-width:min(82%,560px); background:#202c33; color:#e9edef; border-radius:10px 10px 10px 3px; padding:9px 11px 7px; box-shadow:0 1px 1px #0002; }
+.bubble.mine { background:#075e54; color:#f1f5f6; border-radius:10px 10px 3px 10px; }
+.time { font-size:11px; color:#aebac1; margin-top:5px; }
+:root[data-theme="light"] #workspace > header { background:#128c7e; color:#fff; }
+:root[data-theme="light"] #main,:root[data-theme="light"] .chat,:root[data-theme="light"] .messages { background-color:#efeae2; }
+:root[data-theme="light"] .sidebar,:root[data-theme="light"] .me,:root[data-theme="light"] .person,:root[data-theme="light"] .recent-person { background:#fff; color:#111b21; }
+:root[data-theme="light"] .chat-head { background:#f0f2f5; color:#111b21; }
+:root[data-theme="light"] #friendName { color:#111b21; }
+:root[data-theme="light"] #friendStatus { color:#667781; }
+:root[data-theme="light"] .head-icon-btn,:root[data-theme="light"] .chat-head .chat-back { color:#54656f; }
+:root[data-theme="light"] .bubble { background:#fff; color:#111b21; }
+:root[data-theme="light"] .bubble.mine { background:#d9fdd3; color:#111b21; }
+:root[data-theme="light"] .composer { background:#f0f2f5; }
+:root[data-theme="light"] .composer input { background:#fff; color:#111b21; }
+:root[data-theme="light"] .composer-icon { color:#54656f; }
+:root[data-theme="light"] .send-button { background:#00a884; color:#fff; }
+.composer { align-items:center; gap:5px; padding:8px 9px; background:#111b21; }
+.composer input { border:0; border-radius:24px; background:#202c33; color:#e9edef; min-height:46px; padding:12px 15px; }
+.composer-icon { width:36px; height:42px; flex:0 0 36px; color:#aebac1; border:0; border-radius:50%; background:transparent; display:grid; place-items:center; }
+.composer-icon svg { width:23px; height:23px; }
+.attach-button { width:43px; height:43px; border-radius:50%; background:#202c33; color:#d5dee2; box-shadow:none; border:0; }
+.send-button { display:grid; place-items:center; width:46px; height:46px; flex:0 0 46px; border-radius:50%; background:#00a884; color:#fff; box-shadow:none; }
+.send-button svg { width:23px; height:23px; }
+.message-select-bar { background:#202c33; border-color:#34434b; padding:9px; gap:6px; }
+.message-select-bar button { border-radius:18px; }
+.message-select-bar button.danger { background:#b42335; }
+.theme-toggle { border-radius:22px; padding:10px 16px; background:#0b5149; color:#fff; }
+:root[data-theme="light"] .theme-toggle { background:#fff; color:#075e54; }
+@media(max-width:650px) {
+ #workspace > header { min-height:68px; padding:11px 14px; }
+ .chat-head { padding:8px 8px; gap:7px; }
+ .chat-head-actions { gap:0; }
+ .head-icon-btn { width:32px; height:36px; }
+ #clearChatBtn { padding:7px 8px; font-size:11px; }
+ .messages { padding:10px 8px; }
+ .composer { padding:6px 5px; gap:1px; }
+ .composer-icon { width:30px; flex-basis:30px; }
+ .attach-button { width:35px; min-width:35px; height:35px; }
+ .send-button { width:43px; height:43px; flex-basis:43px; }
+ .composer input { min-width:0; padding:11px 12px; }
+}
+
 </style>
 </head>
 
@@ -474,10 +609,24 @@ button {
   style="flex:1;min-height:0;display:flex;flex-direction:column">
 
 <div class="chat-head">
-  <button id="backBtn" class="secondary">‹</button>
+  <button id="backBtn" class="secondary chat-back" type="button" aria-label="Back">‹</button>
   <div class="avatar" id="friendAvatar">F</div>
-  <div id="friendName" style="flex:1">Friend</div>
-  <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
+  <div class="friend-title-wrap">
+    <div id="friendName">Friend</div>
+    <small id="friendStatus">Chatzapp</small>
+  </div>
+  <div class="chat-head-actions">
+    <button id="voiceCallBtn" class="head-icon-btn" type="button" aria-label="Voice call" title="Voice call">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 3h3l2 5-2 2a14 14 0 0 0 6 6l2-2 5 2v3a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+    </button>
+    <button id="videoCallBtn" class="head-icon-btn" type="button" aria-label="Video call" title="Video call">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="m16 10 5-3v10l-5-3" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+    </button>
+    <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
+    <button id="chatMoreBtn" class="head-icon-btn" type="button" aria-label="More options" title="More options">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+    </button>
+  </div>
 </div>
 
 <div id="messages" class="messages"></div>
@@ -505,13 +654,26 @@ button {
     </div>
   </div>
   <input id="photoInput" type="file" accept="image/*" hidden><input id="audioInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.webm" hidden><input id="fileInput" type="file" hidden><input id="documentInput" type="file" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,application/pdf" hidden>
+  <button id="emojiBtn" class="composer-icon" type="button" aria-label="Emoji" title="Emoji">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M8 14s1.3 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+  </button>
+  <div id="emojiPanel" class="emoji-panel hidden" role="dialog" aria-label="Choose emoji">
+    <button type="button">😀</button><button type="button">😂</button><button type="button">🥹</button><button type="button">😍</button><button type="button">😘</button><button type="button">😊</button><button type="button">😎</button><button type="button">🤔</button><button type="button">😭</button><button type="button">❤️</button><button type="button">👍</button><button type="button">🙏</button><button type="button">🔥</button><button type="button">🎉</button><button type="button">💯</button><button type="button">🥰</button>
+  </div>
   <input id="messageInput"
     type="text"
     maxlength="4000"
-    placeholder="Type a message..."
+    placeholder="Message"
     autocomplete="off">
-
-  <button class="primary" type="submit">➤</button>
+  <button id="cameraBtn" class="composer-icon" type="button" aria-label="Photo" title="Photo">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h3l1.5-2h5L15 7h3a2 2 0 0 1 2 2v9H4V9a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.8"/></svg>
+  </button>
+  <button id="micBtn" class="composer-icon" type="button" aria-label="Audio" title="Send audio file">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-4 0h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+  </button>
+  <button id="sendBtn" class="send-button" type="submit" aria-label="Send" title="Send">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 4 18 8-18 8 3-8-3-8Zm3 8h15" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
+  </button>
 </form>
 
 </div>
@@ -1257,6 +1419,15 @@ $("clearChatBtn").addEventListener("click", async () => {
   }
 });
 
+// Call buttons are visual placeholders until real-time calling is implemented.
+document.getElementById("voiceCallBtn")?.addEventListener("click", () => alert("Voice calling is not available yet."));
+document.getElementById("videoCallBtn")?.addEventListener("click", () => alert("Video calling is not available yet."));
+document.getElementById("chatMoreBtn")?.addEventListener("click", () => {
+  const clearButton = document.getElementById("clearChatBtn");
+  if (clearButton && !clearButton.classList.contains("hidden")) clearButton.click();
+  else alert("More chat options will be available soon.");
+});
+
 /* Open conversation */
 function openChat(friend, isSecret = false) {
   selectedUser = friend;
@@ -1592,26 +1763,10 @@ $("messageForm").addEventListener("submit", async e => {
   }
 });
 
+    <div class="sub">Private chats with your friends</div>
+  </div>
+  <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
 
-// Light/Dark theme toggle. Keep the selected theme across reloads.
-const themeToggle = $("themeToggle");
-function applyTheme(theme) {
-  const light = theme === "light";
-  document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
-  if (themeToggle) {
-    themeToggle.textContent = light ? "🌙 Dark" : "☀️ Light";
-    themeToggle.setAttribute("aria-label", light ? "Switch to dark mode" : "Switch to light mode");
-  }
-}
-let savedTheme = "dark";
-try { savedTheme = localStorage.getItem("chatzapp-theme") || "dark"; } catch (_) {}
-applyTheme(savedTheme);
-if (themeToggle) themeToggle.addEventListener("click", () => {
-  const nextTheme = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
-  applyTheme(nextTheme);
-  try { localStorage.setItem("chatzapp-theme", nextTheme); } catch (_) {}
-});
+</header>
 
-</script>
-</body>
-</html>
+<div id="main">
