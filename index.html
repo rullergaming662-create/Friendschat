@@ -55,7 +55,7 @@
 :root[data-theme="light"] .message-select-bar button { background:#d2daf0; color:#182033; }
 :root[data-theme="light"] .message-select-bar button.danger { background:#a8324a; color:#fff; }
 :root[data-theme="light"] .selection-check { background:#fff; color:#5968e8; border-color:#5968e8; }
-:root[data-theme="light"] .selection-check.checked { background:#5968e8; color:#fff; }
+:root[data-theme="light"] .selection-check.checked { background:#5968e8; color:#fff; border-color:#5968e8; }\n:root[data-theme="light"] .message-select-bar { box-shadow:0 -5px 18px #24345b12; }
 .theme-toggle { flex:0 0 auto; background:#27314b; color:#fff; border:1px solid #ffffff30; border-radius:12px; padding:10px 13px; font-size:14px; font-weight:700; }
 :root[data-theme="light"] .theme-toggle { background:#fff; color:#182033; border-color:#dce2ef; }
 
@@ -263,7 +263,7 @@ button {
   background:var(--panel);
 }
 
-.composer input { flex:1;min-width:0; }
+.composer input { flex:1;min-width:0; }\n#messageForm > button.primary { flex:0 0 52px;width:52px;height:52px;display:grid;place-items:center;padding:0;border-radius:16px;background:linear-gradient(145deg,#6577ff,#4f55d9);color:#fff;font-size:26px;font-weight:800;box-shadow:0 5px 16px #6577ff44;border:1px solid #ffffff24;transition:transform .12s ease,filter .12s ease; }\n#messageForm > button.primary:active { transform:scale(.94);filter:brightness(.95); }\n#messageForm > button.primary:disabled { opacity:.55;box-shadow:none; }\n@media (max-width:480px) { .message-select-bar { gap:7px;padding:9px; } .message-select-bar #selectedMessageCount { flex-basis:100%; } .message-select-bar button { flex:1 1 auto; } .message-select-bar button.danger { flex-basis:100%; } .selection-check { left:-31px;width:24px;height:24px; } }
 .attach-wrap {position:relative;display:flex;align-items:center}
 .attach-button {display:grid;place-items:center;width:48px;height:48px;flex-shrink:0;border-radius:16px;background:linear-gradient(145deg,#8b5cf6,#4f7cff);color:white;box-shadow:0 5px 16px #6577ff44;border:1px solid #ffffff20;transition:transform .16s ease}
 .attach-button:active {transform:scale(.94)}
@@ -305,20 +305,23 @@ button {
 .photo-viewer-actions {display:flex;gap:10px;margin-top:12px}
 .photo-viewer-actions a,.photo-viewer-actions button {background:#27314b;color:white;padding:10px 16px;border-radius:10px;text-decoration:none}
 
-.message-select-bar {display:flex;align-items:center;gap:8px;padding:9px 12px;background:#202941;border-top:1px solid var(--line);flex-wrap:wrap}
+.message-select-bar {display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--panel);border-top:1px solid var(--line);flex-wrap:wrap;box-shadow:0 -5px 18px #0000000b}
 .message-select-bar.hidden {display:none!important}
-.message-select-bar button {background:#39486a;color:#edf1ff;padding:9px 12px;border-radius:9px}
-.message-select-bar button.danger {background:#a8324a}
+.message-select-bar button {background:#303b55;color:#edf1ff;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:600;min-height:42px;transition:transform .12s ease,opacity .12s ease}
+.message-select-bar button.danger {background:linear-gradient(135deg,#d9435b,#a91f3b);color:#fff;box-shadow:0 4px 12px #a8324a33}
 .message-select-bar button:disabled {opacity:.45;cursor:not-allowed}
 .bubble.selectable {cursor:default;position:relative}
 .bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
-.selection-check {display:inline-grid;place-items:center;flex:0 0 22px;width:22px;height:22px;border-radius:6px;border:2px solid #9aa9d0;background:#111827;color:white;font-size:14px;font-weight:bold;margin:0 8px 0 0;padding:0;vertical-align:middle;cursor:pointer}
+.bubble {content-visibility:auto;contain-intrinsic-size:auto 52px}
+.selection-check {position:absolute;left:-34px;top:12px;display:grid;place-items:center;flex:0 0 26px;width:26px;height:26px;border-radius:50%;border:2px solid #9aa9d0;background:#111827;color:white;font-size:15px;font-weight:800;margin:0;padding:0;cursor:pointer;box-shadow:0 2px 8px #0002;z-index:2;transition:transform .12s ease,background .12s ease,border-color .12s ease}
 .selection-check.checked {background:#6577ff;border-color:#aebaff}
 .selection-check:focus-visible {outline:2px solid white;outline-offset:2px}
-.message-select-bar button {background:#39486a;color:#edf1ff;padding:9px 12px;border-radius:9px}
-.message-select-bar button.danger {background:#a8324a}
+.message-select-bar button {background:#303b55;color:#edf1ff;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:600;min-height:42px;transition:transform .12s ease,opacity .12s ease}
+.message-select-bar button.danger {background:linear-gradient(135deg,#d9435b,#a91f3b);color:#fff;box-shadow:0 4px 12px #a8324a33}
 .message-select-bar button:disabled {opacity:.45;cursor:not-allowed}
 .bubble.selectable {cursor:pointer;position:relative;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+/* Keep the selection tick in the blank space just before each message bubble. */
+.bubble .selection-check {position:absolute;left:-29px;top:7px;margin:0;z-index:3;box-shadow:0 1px 4px #0002;}
 .bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
 .selection-check {display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#6577ff;color:white;font-size:13px;font-weight:bold;margin-right:7px;vertical-align:middle}
 .empty {
@@ -511,7 +514,7 @@ button {
     placeholder="Type a message..."
     autocomplete="off">
 
-  <button class="primary" type="submit">➤</button>
+  <button class="primary" type="submit" aria-label="Send message" title="Send message"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" aria-hidden="true"><path d="M3 20.5 21 12 3 3.5l2.2 7.1L15 12l-9.8 1.4L3 20.5Z" fill="currentColor"/></svg></button>
 </form>
 
 </div>
@@ -790,20 +793,13 @@ onAuthStateChanged(auth, async user => {
       await saveProfile(user, name);
       // Mark this account online as soon as authentication is restored.
       await setDoc(doc(db, "users", user.uid), { online:true, lastSeen:serverTimestamp() }, { merge:true });
-      if (presenceHeartbeat) clearInterval(presenceHeartbeat);
-      presenceHeartbeat = setInterval(() => {
-        if (currentUser && currentUser.uid === user.uid) {
-          setDoc(doc(db, "users", user.uid), { online:true, lastSeen:serverTimestamp() }, { merge:true }).catch(err => console.warn("Presence heartbeat:", err));
-        }
-      }, 20000);
       await loadUsers();
       listenRecentChats();
     } catch (err) {
       showError("signinError", friendlyError(err));
       console.error(err);
     }
-   } else {
-    if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
+  } else {
     cleanupChat();
     setAuthMode("signin");
   }
@@ -886,14 +882,12 @@ $("signupForm").addEventListener("submit", async e => {
 });
 
 window.addEventListener("beforeunload", () => {
-  if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
   if (currentUser) setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
 });
 
 /* Settings and logout */
 $("settingsLogoutBtn").addEventListener("click", async () => {
   $("profileModal").classList.add("hidden");
-  if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
   if (currentUser) await setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
   await signOut(auth);
 });
@@ -934,16 +928,6 @@ function listenRecentChats() {
     err => console.warn("Recent chats listener:", err)
   );
 }
-// Treat a user as online only when their heartbeat is recent.
-function isUserOnline(user) {
-  if (!user) return false;
-  const stamp = user.lastSeen;
-  const lastSeenMs = stamp && typeof stamp.toMillis === "function"
-    ? stamp.toMillis()
-    : (stamp instanceof Date ? stamp.getTime() : 0);
-  return user.online === true && lastSeenMs > 0 && (Date.now() - lastSeenMs) < 60000;
-}
-
 function renderRecentChats() {
   const normalList = $("recentList");
   if (!normalList) return;
@@ -962,9 +946,10 @@ function renderRecentChats() {
       const avatar = document.createElement("div"); avatar.className = "avatar"; renderAvatar(avatar, peer.name, peer.photoData || "");
       const meta = document.createElement("div"); meta.className = "recent-meta";
       const name = document.createElement("div"); name.className = "recent-name"; name.textContent = peer.name;
-      if (isUserOnline(peer)) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
-      meta.append(name);
-      const status=document.createElement("div"); status.className="person-status"; status.textContent=isUserOnline(peer) ? "Online" : "Offline"; meta.appendChild(status);
+      if (peer.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
+      const last = document.createElement("div"); last.className = "recent-last"; last.textContent = record.lastMessage || "Chat started";
+      meta.append(name,last);
+      if (peer.online === true) { const status=document.createElement("div"); status.className="person-status"; status.textContent="Online"; meta.appendChild(status); }
       if (Number(record.unreadCount || 0) > 0) { const badge = document.createElement("span"); badge.className = "recent-badge"; badge.textContent = "New Message"; meta.appendChild(badge); }
       row.append(avatar,meta); row.addEventListener("click", () => openChat(peer)); list.appendChild(row);
     });
@@ -1036,9 +1021,9 @@ function renderUsers() {
     const nameLine = document.createElement("span");
     nameLine.className = "person-name-line";
     nameLine.textContent = u.name;
-    if (isUserOnline(u)) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; nameLine.appendChild(dot); }
+    if (u.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; nameLine.appendChild(dot); }
     name.appendChild(nameLine);
-    const status=document.createElement("span"); status.className="person-status"; status.textContent=isUserOnline(u) ? "Online" : "Offline"; name.appendChild(status);
+    if (u.online === true) { const status=document.createElement("span"); status.className="person-status"; status.textContent="Online"; name.appendChild(status); }
     name.addEventListener("click", () => openChat(u));
 
     row.append(avatarButton, name);
@@ -1592,26 +1577,10 @@ $("messageForm").addEventListener("submit", async e => {
   }
 });
 
+    <div class="sub">Private chats with your friends</div>
+  </div>
+  <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
 
-// Light/Dark theme toggle. Keep the selected theme across reloads.
-const themeToggle = $("themeToggle");
-function applyTheme(theme) {
-  const light = theme === "light";
-  document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
-  if (themeToggle) {
-    themeToggle.textContent = light ? "🌙 Dark" : "☀️ Light";
-    themeToggle.setAttribute("aria-label", light ? "Switch to dark mode" : "Switch to light mode");
-  }
-}
-let savedTheme = "dark";
-try { savedTheme = localStorage.getItem("chatzapp-theme") || "dark"; } catch (_) {}
-applyTheme(savedTheme);
-if (themeToggle) themeToggle.addEventListener("click", () => {
-  const nextTheme = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
-  applyTheme(nextTheme);
-  try { localStorage.setItem("chatzapp-theme", nextTheme); } catch (_) {}
-});
+</header>
 
-</script>
-</body>
-</html>
+<div id="main">
