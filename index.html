@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FriendChat</title>
+<title>Chatzapp</title>
 
 <style>
 :root {
@@ -389,16 +389,13 @@ button {
 <body>
 
 <div id="app">
-<div id="startupScreen" class="startup-screen">Opening FriendChat…</div>
-<div id="startupFallback" class="startup-screen hidden" style="z-index:10000;font-size:14px;text-align:center;padding:24px;">
-  FriendChat is taking longer than expected. Check your internet connection and reload the page.
-</div>
+<div id="startupScreen" class="startup-screen">Opening Chatzapp…</div>
 
 <section id="auth" class="hidden">
 
 <header>
   <div>
-    <div class="brand">◉ FriendChat</div>
+    <div class="brand">◉ Chatzapp</div>
     <div class="sub">Private chats with your friends</div>
   </div>
 </header>
@@ -411,7 +408,7 @@ button {
 
   <form id="signupForm" class="auth-form active">
     <h2>Sign Up 👋</h2>
-    <p>Create your FriendChat account to start chatting.</p>
+    <p>Create your Chatzapp account to start chatting.</p>
     <label for="signupPhoto">Profile photo (optional)</label>
     <input id="signupPhoto" type="file" accept="image/*">
     <input id="signupName" placeholder="Your name" autocomplete="name" required minlength="2">
@@ -436,7 +433,7 @@ button {
 
 <header>
   <div style="flex:1">
-    <div class="brand">◉ FriendChat</div>
+    <div class="brand">◉ Chatzapp</div>
     <div class="sub">Private chats with your friends</div>
   </div>
   <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
@@ -600,30 +597,6 @@ const db = getFirestore(app);
 const authPersistenceReady = setPersistence(auth, browserLocalPersistence);
 
 const $ = id => document.getElementById(id);
-
-// Light/Dark mode toggle, remembered on this device.
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  try { localStorage.setItem("friendchat-theme", theme); } catch (_) {}
-  const label = theme === "light" ? "🌙 Dark" : "☀️ Light";
-  ["themeToggle", "themeToggleWorkspace"].forEach(id => {
-    const button = $(id);
-    if (button) {
-      button.textContent = label;
-      button.setAttribute("aria-label", theme === "light" ? "Switch to dark mode" : "Switch to light mode");
-      button.title = theme === "light" ? "Switch to dark mode" : "Switch to light mode";
-    }
-  });
-}
-let savedTheme = "dark";
-try { savedTheme = localStorage.getItem("friendchat-theme") || "dark"; } catch (_) {}
-applyTheme(savedTheme === "light" ? "light" : "dark");
-function toggleTheme() {
-  applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
-}
-document.addEventListener("click", event => {
-  if (event.target.closest("#themeToggle, #themeToggleWorkspace")) toggleTheme();
-});
 
 let currentUser = null;
 let selectedUser = null;
@@ -802,7 +775,6 @@ onAuthStateChanged(auth, async user => {
   currentUser = user;
   // Firebase restores browserLocalPersistence before deciding which screen to show.
   $("startupScreen").classList.add("hidden");
-  $("startupFallback")?.classList.add("hidden");
   authSection.classList.toggle("hidden", !!user);
   workspace.classList.toggle("hidden", !user);
 
@@ -818,13 +790,20 @@ onAuthStateChanged(auth, async user => {
       await saveProfile(user, name);
       // Mark this account online as soon as authentication is restored.
       await setDoc(doc(db, "users", user.uid), { online:true, lastSeen:serverTimestamp() }, { merge:true });
+      if (presenceHeartbeat) clearInterval(presenceHeartbeat);
+      presenceHeartbeat = setInterval(() => {
+        if (currentUser && currentUser.uid === user.uid) {
+          setDoc(doc(db, "users", user.uid), { online:true, lastSeen:serverTimestamp() }, { merge:true }).catch(err => console.warn("Presence heartbeat:", err));
+        }
+      }, 20000);
       await loadUsers();
       listenRecentChats();
     } catch (err) {
       showError("signinError", friendlyError(err));
       console.error(err);
     }
-  } else {
+   } else {
+    if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
     cleanupChat();
     setAuthMode("signin");
   }
@@ -907,12 +886,14 @@ $("signupForm").addEventListener("submit", async e => {
 });
 
 window.addEventListener("beforeunload", () => {
+  if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
   if (currentUser) setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
 });
 
 /* Settings and logout */
 $("settingsLogoutBtn").addEventListener("click", async () => {
   $("profileModal").classList.add("hidden");
+  if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
   if (currentUser) await setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
   await signOut(auth);
 });
@@ -953,6 +934,16 @@ function listenRecentChats() {
     err => console.warn("Recent chats listener:", err)
   );
 }
+// Treat a user as online only when their heartbeat is recent.
+function isUserOnline(user) {
+  if (!user) return false;
+  const stamp = user.lastSeen;
+  const lastSeenMs = stamp && typeof stamp.toMillis === "function"
+    ? stamp.toMillis()
+    : (stamp instanceof Date ? stamp.getTime() : 0);
+  return user.online === true && lastSeenMs > 0 && (Date.now() - lastSeenMs) < 60000;
+}
+
 function renderRecentChats() {
   const normalList = $("recentList");
   if (!normalList) return;
@@ -971,10 +962,9 @@ function renderRecentChats() {
       const avatar = document.createElement("div"); avatar.className = "avatar"; renderAvatar(avatar, peer.name, peer.photoData || "");
       const meta = document.createElement("div"); meta.className = "recent-meta";
       const name = document.createElement("div"); name.className = "recent-name"; name.textContent = peer.name;
-      if (peer.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
-      const last = document.createElement("div"); last.className = "recent-last"; last.textContent = record.lastMessage || "Chat started";
-      meta.append(name,last);
-      if (peer.online === true) { const status=document.createElement("div"); status.className="person-status"; status.textContent="Online"; meta.appendChild(status); }
+      if (isUserOnline(peer)) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
+      meta.append(name);
+      const status=document.createElement("div"); status.className="person-status"; status.textContent=isUserOnline(peer) ? "Online" : "Offline"; meta.appendChild(status);
       if (Number(record.unreadCount || 0) > 0) { const badge = document.createElement("span"); badge.className = "recent-badge"; badge.textContent = "New Message"; meta.appendChild(badge); }
       row.append(avatar,meta); row.addEventListener("click", () => openChat(peer)); list.appendChild(row);
     });
@@ -1046,9 +1036,9 @@ function renderUsers() {
     const nameLine = document.createElement("span");
     nameLine.className = "person-name-line";
     nameLine.textContent = u.name;
-    if (u.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; nameLine.appendChild(dot); }
+    if (isUserOnline(u)) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; nameLine.appendChild(dot); }
     name.appendChild(nameLine);
-    if (u.online === true) { const status=document.createElement("span"); status.className="person-status"; status.textContent="Online"; name.appendChild(status); }
+    const status=document.createElement("span"); status.className="person-status"; status.textContent=isUserOnline(u) ? "Online" : "Offline"; name.appendChild(status);
     name.addEventListener("click", () => openChat(u));
 
     row.append(avatarButton, name);
@@ -1602,16 +1592,10 @@ $("messageForm").addEventListener("submit", async e => {
   }
 });
 
+    <div class="sub">Private chats with your friends</div>
+  </div>
+  <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
 
-</script>
-<script>
-window.setTimeout(() => {
-  const startup = document.getElementById("startupScreen");
-  if (startup && !startup.classList.contains("hidden")) {
-    startup.classList.add("hidden");
-    document.getElementById("startupFallback")?.classList.remove("hidden");
-  }
-}, 12000);
-</script>
-</body>
-</html>
+</header>
+
+<div id="main">
