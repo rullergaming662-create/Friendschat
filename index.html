@@ -314,17 +314,17 @@ button {
 .message-select-bar button:disabled {opacity:.35;cursor:not-allowed}
 .bubble.selectable {cursor:pointer;position:relative;user-select:none;-webkit-user-select:none;touch-action:pan-y}
 .bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
-/* Position the selection tick outside the message bubble, in the left/right gutter. */
-.selection-check {position:absolute;top:10px;left:-12px;z-index:20;display:grid;place-items:center;width:23px;height:23px;border-radius:50%;border:2px solid #9aa9d0;background:var(--panel);color:#fff;font-size:14px;font-weight:800;margin:0;padding:0;cursor:pointer;box-shadow:0 1px 5px #0002}
-.bubble.mine .selection-check {left:auto;right:-12px}
+/* Keep the selection tick in the empty space on the RIGHT of every message bubble. */
+.selection-check {position:absolute;top:10px;left:auto;right:-30px;z-index:20;display:grid;place-items:center;width:23px;height:23px;border-radius:50%;border:2px solid #9aa9d0;background:var(--panel);color:#fff;font-size:14px;font-weight:800;margin:0;padding:0;cursor:pointer;box-shadow:0 1px 5px #0002}
+.bubble.mine .selection-check {left:auto;right:-30px}
 .selection-check.checked {background:#5968e8;border-color:#5968e8;color:#fff}
 .selection-check:focus-visible {outline:2px solid var(--primary);outline-offset:2px}
 @media(max-width:600px){
  .message-select-bar {gap:6px;padding:8px 9px;min-height:54px}
  .message-select-bar #selectedMessageCount {font-size:12px;min-width:45px}
  .message-select-bar button {padding:9px 10px;font-size:12px;min-height:40px;border-radius:10px}
- .selection-check {left:-10px;width:21px;height:21px;z-index:20}
- .bubble.mine .selection-check {right:-10px}
+ .selection-check {left:auto;right:-27px;width:21px;height:21px;z-index:20}
+ .bubble.mine .selection-check {left:auto;right:-27px}
 }
 .empty {
   text-align:center;
