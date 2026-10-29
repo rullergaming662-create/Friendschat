@@ -383,6 +383,17 @@ button {
 
 .startup-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--bg,#0e1422);color:var(--text,#eef2ff);font-weight:700;font-size:18px;letter-spacing:.2px}
 .startup-screen.hidden{display:none}
+
+/* Message emoji reactions */
+.reaction-tools{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:6px}
+.reaction-picker{display:flex;gap:4px;padding:5px 7px;border-radius:22px;background:var(--panel);border:1px solid var(--line);box-shadow:0 3px 12px #0002}
+.reaction-picker button,.reaction-chip{border:0;cursor:pointer;border-radius:18px;padding:4px 7px;font-size:17px;background:transparent;color:var(--text)}
+.reaction-picker button:active{transform:scale(1.15)}
+.reaction-chip{display:inline-flex;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);font-size:14px}
+.reaction-chip.mine{outline:2px solid var(--primary)}
+.reaction-chip span{font-size:11px;color:var(--muted)}
+.reaction-add{font-size:15px!important;border:1px solid var(--line)!important;background:var(--panel)!important}
+
 </style>
 </head>
 
@@ -1258,6 +1269,23 @@ $("clearChatBtn").addEventListener("click", async () => {
 });
 
 /* Open conversation */
+async function toggleMessageReaction(messageId, emoji, currentUsers) {
+  if (!currentUser || !currentChatId) return;
+  const users = Array.isArray(currentUsers) ? currentUsers : [];
+  const alreadyReacted = users.includes(currentUser.uid);
+  const updatedUsers = alreadyReacted
+    ? users.filter(uid => uid !== currentUser.uid)
+    : [...users, currentUser.uid];
+  try {
+    await updateDoc(doc(db, "chats", currentChatId, "messages", messageId), {
+      ["reactions." + emoji]: updatedUsers
+    });
+  } catch (err) {
+    alert("Could not save reaction. Please check your Firestore Rules.");
+    console.error("Reaction update failed:", err);
+  }
+}
+
 function openChat(friend, isSecret = false) {
   selectedUser = friend;
   activeChatSecret = false;
@@ -1445,6 +1473,58 @@ function openChat(friend, isSecret = false) {
         }
 
         bubble.appendChild(time);
+
+        // WhatsApp-style emoji reactions, synced through Firestore.
+        if (message.type !== "deleted") {
+          const reactionTools = document.createElement("div");
+          reactionTools.className = "reaction-tools";
+          const reactions = message.reactions && typeof message.reactions === "object" ? message.reactions : {};
+          const reactionEmojis = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+          Object.entries(reactions).forEach(([emoji, users]) => {
+            if (!Array.isArray(users) || !users.length) return;
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "reaction-chip" + (users.includes(currentUser.uid) ? " mine" : "");
+            chip.textContent = emoji;
+            const count = document.createElement("span");
+            count.textContent = String(users.length);
+            chip.appendChild(count);
+            chip.title = users.includes(currentUser.uid) ? "Tap to remove your reaction" : "Tap to react";
+            chip.addEventListener("click", async event => {
+              event.stopPropagation();
+              await toggleMessageReaction(item.id, emoji, users);
+            });
+            reactionTools.appendChild(chip);
+          });
+          const addReaction = document.createElement("button");
+          addReaction.type = "button";
+          addReaction.className = "reaction-chip reaction-add";
+          addReaction.textContent = "＋";
+          addReaction.setAttribute("aria-label", "Add emoji reaction");
+          addReaction.addEventListener("click", event => {
+            event.stopPropagation();
+            const existing = reactionTools.querySelector(".reaction-picker");
+            if (existing) { existing.remove(); return; }
+            const picker = document.createElement("div");
+            picker.className = "reaction-picker";
+            reactionEmojis.forEach(emoji => {
+              const option = document.createElement("button");
+              option.type = "button";
+              option.textContent = emoji;
+              option.setAttribute("aria-label", "React " + emoji);
+              option.addEventListener("click", async ev => {
+                ev.stopPropagation();
+                picker.remove();
+                await toggleMessageReaction(item.id, emoji, reactions[emoji] || []);
+              });
+              picker.appendChild(option);
+            });
+            reactionTools.appendChild(picker);
+          });
+          reactionTools.appendChild(addReaction);
+          bubble.appendChild(reactionTools);
+        }
+
         $("messages").appendChild(bubble);
         updateMessageSelectionUI();
 
