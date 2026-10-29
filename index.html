@@ -518,6 +518,27 @@ body { font-family:Roboto,"Segoe UI",Arial,sans-serif; background:#0b141a; }
  .composer input { min-width:0; padding:11px 12px; }
 }
 
+
+/* WhatsApp-style emoji reactions */
+.bubble { position:relative; }
+.reaction-controls { position:relative; display:flex; align-items:center; justify-content:flex-end; gap:5px; margin-top:5px; }
+.reaction-toggle { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; padding:0; border-radius:50%; background:transparent; color:var(--muted); border:1px solid transparent; font-size:17px; line-height:1; }
+.reaction-toggle:hover,.reaction-toggle:focus-visible { background:#6577ff22; border-color:#6577ff66; }
+.reaction-picker { display:flex; flex-wrap:wrap; gap:4px; padding:5px; border:1px solid var(--line); border-radius:24px; background:var(--panel); box-shadow:0 5px 18px #0005; }
+.reaction-picker.hidden { display:none!important; }
+.reaction-picker button { display:grid; place-items:center; width:34px; height:34px; padding:0; border-radius:50%; background:transparent; font-size:22px; }
+.reaction-picker button:hover,.reaction-picker button:focus-visible { background:#6577ff30; transform:scale(1.08); }
+.message-reactions { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+.message-reactions:empty { display:none; }
+.reaction-chip { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border:1px solid #6577ff55; border-radius:14px; background:#6577ff20; color:var(--text); font-size:14px; line-height:1.5; }
+.reaction-chip.mine-reaction { background:#6577ff45; border-color:#6577ff; }
+:root[data-theme="light"] .reaction-picker { background:#fff; }
+:root[data-theme="light"] .reaction-chip { color:#182033; }
+@media(max-width:650px) {
+ .reaction-picker button { width:32px; height:32px; font-size:21px; }
+ .reaction-controls { gap:3px; }
+}
+
 </style>
 </head>
 
@@ -1519,7 +1540,7 @@ function openChat(friend, isSecret = false) {
         let holdTimer = null;
         let holdTriggered = false;
         bubble.addEventListener("pointerdown", event => {
-          if (event.target.closest("a,button,audio")) return;
+          if (event.target.closest("a,button,audio,.reaction-controls")) return;
           holdTriggered = false;
           holdTimer = setTimeout(() => {
             holdTriggered = true;
@@ -1532,6 +1553,7 @@ function openChat(friend, isSecret = false) {
           holdTimer = null;
         }));
         bubble.addEventListener("click", event => {
+          if (event.target.closest(".reaction-controls")) return;
           if (!messageSelectionMode || event.target.closest(".selection-check")) return;
           if (holdTriggered) { event.preventDefault(); event.stopPropagation(); return; }
           toggleMessageSelection(item.id);
@@ -1616,6 +1638,72 @@ function openChat(friend, isSecret = false) {
         }
 
         bubble.appendChild(time);
+
+        // Render persistent reactions and an emoji picker for this message.
+        if (message.type !== "deleted") {
+          const reactionControls = document.createElement("div");
+          reactionControls.className = "reaction-controls";
+          reactionControls.addEventListener("click", event => event.stopPropagation());
+          reactionControls.addEventListener("pointerdown", event => event.stopPropagation());
+
+          const reactions = message.reactions && typeof message.reactions === "object" ? message.reactions : {};
+          const reactionSummary = document.createElement("div");
+          reactionSummary.className = "message-reactions";
+          const counts = {};
+          Object.entries(reactions).forEach(([uid, emoji]) => {
+            if (typeof emoji === "string" && emoji && emoji !== "none") counts[emoji] = (counts[emoji] || 0) + 1;
+          });
+          Object.entries(counts).forEach(([emoji, count]) => {
+            const chip = document.createElement("span");
+            chip.className = "reaction-chip" + (reactions[currentUser.uid] === emoji ? " mine-reaction" : "");
+            chip.textContent = `${emoji} ${count}`;
+            reactionSummary.appendChild(chip);
+          });
+
+          const picker = document.createElement("div");
+          picker.className = "reaction-picker hidden";
+          ["👍","❤️","😂","😮","😢","🙏","🔥","🎉"].forEach(emoji => {
+            const emojiButton = document.createElement("button");
+            emojiButton.type = "button";
+            emojiButton.textContent = emoji;
+            emojiButton.setAttribute("aria-label", `React ${emoji}`);
+            emojiButton.addEventListener("click", async event => {
+              event.preventDefault();
+              event.stopPropagation();
+              const previous = reactions[currentUser.uid];
+              const value = previous === emoji ? "none" : emoji;
+              emojiButton.disabled = true;
+              try {
+                await updateDoc(doc(db, "chats", chatId, "messages", item.id), {
+                  [`reactions.${currentUser.uid}`]: value
+                });
+                picker.classList.add("hidden");
+              } catch (err) {
+                alert("Reaction save nahi hua: " + friendlyError(err));
+              } finally {
+                emojiButton.disabled = false;
+              }
+            });
+            picker.appendChild(emojiButton);
+          });
+
+          const reactionToggle = document.createElement("button");
+          reactionToggle.type = "button";
+          reactionToggle.className = "reaction-toggle";
+          reactionToggle.textContent = "☺";
+          reactionToggle.title = "React to message";
+          reactionToggle.setAttribute("aria-label", "React to message");
+          reactionToggle.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            picker.classList.toggle("hidden");
+          });
+          reactionControls.appendChild(reactionSummary);
+          reactionControls.appendChild(reactionToggle);
+          reactionControls.appendChild(picker);
+          bubble.appendChild(reactionControls);
+        }
+
         $("messages").appendChild(bubble);
         updateMessageSelectionUI();
 
