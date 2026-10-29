@@ -502,7 +502,7 @@ button {
   <div class="avatar" id="friendAvatar">F</div>
   <div id="friendName" style="flex:1">Friend</div>
   <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
-  <button id="messageTrashBtn" class="secondary hidden" type="button" aria-label="Delete selected message" title="Delete selected message">🗑️</button>
+  <button id="deleteSelectedIconBtn" class="secondary hidden" type="button" title="Delete selected message" aria-label="Delete selected message">🗑️</button>
 </div>
 
 <div id="messages" class="messages"></div>
@@ -546,20 +546,20 @@ button {
 </section>
 </div>
 
+<div id="messageDeleteModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Delete message">
+  <div class="modal-card">
+    <h3>Delete message</h3>
+    <button id="deleteEveryoneChoice" class="primary full" type="button">Delete for everyone</button>
+    <button id="deleteMeChoice" class="secondary full" type="button">Delete for me</button>
+    <button id="cancelDeleteChoice" class="secondary full" type="button">Cancel</button>
+  </div>
+</div>
+
 <div id="profilePhotoViewer" class="profile-photo-viewer hidden" role="dialog" aria-modal="true" aria-label="Profile photo">
   <button id="closePhotoViewer" class="viewer-close" type="button" aria-label="Close profile photo">✕</button>
   <img id="profilePhotoViewerImage" alt="Profile photo" class="hidden">
   <div id="profilePhotoViewerPlaceholder" class="viewer-placeholder hidden"></div>
   <div id="profilePhotoViewerName" class="viewer-name"></div>
-</div>
-
-<div id="messageDeleteModal" class="modal hidden" role="dialog" aria-modal="true">
-  <div class="modal-card">
-    <h3>Delete message</h3>
-    <button id="deleteEveryoneSingle" class="primary full" type="button">Delete for everyone</button>
-    <button id="deleteMeSingle" class="secondary full" type="button">Delete for me</button>
-    <button id="cancelDeleteSingle" class="secondary full" type="button">Cancel</button>
-  </div>
 </div>
 
 <div id="profileModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
@@ -1192,8 +1192,8 @@ function cleanupChat() {
 
 /* WhatsApp-style message selection and deletion */
 function updateMessageSelectionUI() {
-  $("messageSelectBar").classList.toggle("hidden", !messageSelectionMode || selectedMessageIds.size === 0);
-  $("messageTrashBtn").classList.toggle("hidden", !messageSelectionMode || selectedMessageIds.size === 0);
+  $("messageSelectBar").classList.add("hidden");
+  $("deleteSelectedIconBtn").classList.toggle("hidden", !messageSelectionMode || selectedMessageIds.size === 0);
   $("selectedMessageCount").textContent = `${selectedMessageIds.size} selected`;
   const selectedMessages = [...document.querySelectorAll("#messages [data-message-id]")]
     .filter(el => selectedMessageIds.has(el.dataset.messageId));
@@ -1244,7 +1244,6 @@ $("cancelMessageSelect").addEventListener("click", resetMessageSelection);
 async function deleteSelectedMessages(forEveryone) {
   if (!currentUser || !currentChatId || selectedMessageIds.size === 0) return;
   const ids = [...selectedMessageIds];
-  const verb = forEveryone ? "everyone" : "you";
 
   const selectedEls = ids.map(id => document.querySelector(`#messages [data-message-id="${CSS.escape(id)}"]`)).filter(Boolean);
   try {
@@ -1273,16 +1272,30 @@ async function deleteSelectedMessages(forEveryone) {
 }
 $("deleteForMeBtn").addEventListener("click", () => deleteSelectedMessages(false));
 $("deleteForEveryoneBtn").addEventListener("click", () => deleteSelectedMessages(true));
-$("messageTrashBtn").addEventListener("click", () => $("messageDeleteModal").classList.remove("hidden"));
-$("deleteEveryoneSingle").addEventListener("click", async () => {
+
+$("deleteSelectedIconBtn").addEventListener("click",()=>{
+  if(!selectedMessageIds.size) return;
+  $("deleteEveryoneChoice").disabled=[...selectedMessageIds].some(id=>{
+    const el=document.querySelector(`#messages [data-message-id="${CSS.escape(id)}"]`);
+    return !el || el.dataset.senderId!==currentUser?.uid || el.dataset.deleted==="true";
+  });
+  $("messageDeleteModal").classList.remove("hidden");
+});
+$("deleteEveryoneChoice").addEventListener("click",async()=>{
   $("messageDeleteModal").classList.add("hidden");
   await deleteSelectedMessages(true);
 });
-$("deleteMeSingle").addEventListener("click", async () => {
+$("deleteMeChoice").addEventListener("click",async()=>{
   $("messageDeleteModal").classList.add("hidden");
   await deleteSelectedMessages(false);
 });
-$("cancelDeleteSingle").addEventListener("click", () => $("messageDeleteModal").classList.add("hidden"));
+$("cancelDeleteChoice").addEventListener("click",()=>{
+  $("messageDeleteModal").classList.add("hidden");
+  resetMessageSelection();
+});
+$("messageDeleteModal").addEventListener("click",event=>{
+  if(event.target===$("messageDeleteModal")){$("messageDeleteModal").classList.add("hidden");resetMessageSelection();}
+});
 
 // Clear chat only for the current user; the other participant keeps their messages.
 $("clearChatBtn").addEventListener("click", async () => {
@@ -1398,12 +1411,8 @@ function openChat(friend, isSecret = false) {
           holdTriggered = false;
           holdTimer = setTimeout(() => {
             holdTriggered = true;
-            messageSelectionMode = true;
-            selectedMessageIds.clear();
-            selectedMessageIds.add(item.id);
-            addSelectionChecks();
-            updateMessageSelectionUI();
-            $("messageTrashBtn").classList.remove("hidden");
+            startMessageSelection();
+            toggleMessageSelection(item.id);
           }, 550);
         });
         ["pointerup", "pointercancel", "pointerleave"].forEach(type => bubble.addEventListener(type, () => {
@@ -1562,17 +1571,21 @@ function openChat(friend, isSecret = false) {
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
           };
+          let lastTapAt=0;
           let reactionHoldTimer=null;
           let reactionHoldTriggered=false;
           bubble.addEventListener("pointerdown",event=>{
-            if(event.target.closest("button,a,audio")) return;
+            if(event.target.closest("a,button,audio")) return;
             reactionHoldTriggered=false;
             reactionHoldTimer=setTimeout(()=>{reactionHoldTriggered=true;openPicker(event);},550);
           });
           ["pointerup","pointercancel","pointerleave"].forEach(type=>bubble.addEventListener(type,()=>{
-            if(reactionHoldTimer)clearTimeout(reactionHoldTimer);
+            if(reactionHoldTimer) clearTimeout(reactionHoldTimer);
             reactionHoldTimer=null;
           }));
+          bubble.addEventListener("click",event=>{
+            if(reactionHoldTriggered){event.preventDefault();event.stopPropagation();reactionHoldTriggered=false;}
+          });
           quickbar.addEventListener("click",event=>event.stopPropagation());
           picker.addEventListener("click",event=>event.stopPropagation());
           document.addEventListener("pointerdown",event=>{
