@@ -331,6 +331,12 @@ button {
   color:var(--muted);
 }
 
+/* Selection reactions float beside the selected message; delete stays in chat header */
+.message-select-bar{position:fixed;z-index:1500;display:flex;align-items:center;gap:5px;flex-wrap:nowrap;width:max-content;max-width:calc(100vw - 16px);padding:7px 9px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 8px 26px #0004;}
+.message-select-bar.hidden{display:none!important}
+.message-select-bar #cancelMessageSelect,.message-select-bar #selectedMessageCount{display:none!important}
+.message-select-bar .select-reactions{max-width:calc(100vw - 32px);}
+#deleteSelectedBtn{flex:0 0 auto;min-width:40px;font-size:20px;}
 .hidden { display:none!important; }
 
 
@@ -505,6 +511,7 @@ button {
   <button id="backBtn" class="secondary">‹</button>
   <div class="avatar" id="friendAvatar">F</div>
   <div id="friendName" style="flex:1">Friend</div>
+  <button id="deleteSelectedBtn" class="secondary hidden" type="button" aria-label="Delete selected messages">🗑</button>
   <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
 </div>
 
@@ -516,7 +523,6 @@ button {
     <button type="button" data-select-reaction="👍">👍</button><button type="button" data-select-reaction="❤️">❤️</button><button type="button" data-select-reaction="😂">😂</button><button type="button" data-select-reaction="😮">😮</button><button type="button" data-select-reaction="😢">😢</button><button type="button" data-select-reaction="🙏">🙏</button>
     <button id="selectMoreEmoji" type="button" aria-label="More emoji">＋</button>
   </div>
-  <button id="deleteSelectedBtn" type="button" aria-label="Delete selected messages">🗑</button>
 </div>
 <div id="deleteChoiceModal" class="delete-choice-modal hidden" role="dialog" aria-modal="true">
   <div class="delete-choice-card"><div id="deleteChoiceTitle">Delete message?</div>
@@ -1195,7 +1201,10 @@ function cleanupChat() {
 
 /* WhatsApp-style message selection and deletion */
 function updateMessageSelectionUI() {
-  $("messageSelectBar").classList.toggle("hidden", !messageSelectionMode || selectedMessageIds.size === 0);
+  const active = messageSelectionMode && selectedMessageIds.size > 0;
+  const bar = $("messageSelectBar");
+  bar.classList.toggle("hidden", !active);
+  $("deleteSelectedBtn").classList.toggle("hidden", !active);
   $("selectedMessageCount").textContent = `${selectedMessageIds.size} selected`;
   const selectedMessages = [...document.querySelectorAll("#messages [data-message-id]")]
     .filter(el => selectedMessageIds.has(el.dataset.messageId));
@@ -1207,6 +1216,17 @@ function updateMessageSelectionUI() {
     const check = el.querySelector(".selection-check");
     if (check) check.remove();
   });
+  if (active && selectedMessages.length) {
+    const target = selectedMessages[selectedMessages.length - 1];
+    const r = target.getBoundingClientRect();
+    const barRect = bar.getBoundingClientRect();
+    const w = Math.min(barRect.width || 360, window.innerWidth - 16);
+    const left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 8));
+    let top = r.top - (barRect.height || 52) - 10;
+    if (top < 8) top = Math.min(window.innerHeight - (barRect.height || 52) - 8, r.bottom + 10);
+    bar.style.left = `${left}px`;
+    bar.style.top = `${top}px`;
+  }
 }
 function addSelectionChecks() {
   document.querySelectorAll("#messages [data-message-id]").forEach(bubble => {
@@ -1271,6 +1291,8 @@ async function deleteSelectedMessages(forEveryone) {
   }
 }
 const deleteChoiceModal = $("deleteChoiceModal");
+window.addEventListener("resize",()=>{if(messageSelectionMode)updateMessageSelectionUI();});
+$("messages").addEventListener("scroll",()=>{if(messageSelectionMode)updateMessageSelectionUI();},{passive:true});
 $("deleteSelectedBtn").addEventListener("click",()=>{ $("deleteChoiceTitle").textContent=`Delete ${selectedMessageIds.size} selected message${selectedMessageIds.size===1?"":"s"}?`; deleteChoiceModal.classList.remove("hidden"); });
 $("cancelDeleteChoice").addEventListener("click",()=>deleteChoiceModal.classList.add("hidden"));
 $("deleteForMeBtn").addEventListener("click",()=>{deleteChoiceModal.classList.add("hidden");deleteSelectedMessages(false);});
