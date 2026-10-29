@@ -390,6 +390,9 @@ button {
 
 <div id="app">
 <div id="startupScreen" class="startup-screen">Opening FriendChat…</div>
+<div id="startupFallback" class="startup-screen hidden" style="z-index:10000;font-size:14px;text-align:center;padding:24px;">
+  FriendChat is taking longer than expected. Check your internet connection and reload the page.
+</div>
 
 <section id="auth" class="hidden">
 
@@ -598,6 +601,30 @@ const authPersistenceReady = setPersistence(auth, browserLocalPersistence);
 
 const $ = id => document.getElementById(id);
 
+// Light/Dark mode toggle, remembered on this device.
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  try { localStorage.setItem("friendchat-theme", theme); } catch (_) {}
+  const label = theme === "light" ? "🌙 Dark" : "☀️ Light";
+  ["themeToggle", "themeToggleWorkspace"].forEach(id => {
+    const button = $(id);
+    if (button) {
+      button.textContent = label;
+      button.setAttribute("aria-label", theme === "light" ? "Switch to dark mode" : "Switch to light mode");
+      button.title = theme === "light" ? "Switch to dark mode" : "Switch to light mode";
+    }
+  });
+}
+let savedTheme = "dark";
+try { savedTheme = localStorage.getItem("friendchat-theme") || "dark"; } catch (_) {}
+applyTheme(savedTheme === "light" ? "light" : "dark");
+function toggleTheme() {
+  applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+}
+document.addEventListener("click", event => {
+  if (event.target.closest("#themeToggle, #themeToggleWorkspace")) toggleTheme();
+});
+
 let currentUser = null;
 let selectedUser = null;
 let selectedImageFile = null;
@@ -775,6 +802,7 @@ onAuthStateChanged(auth, async user => {
   currentUser = user;
   // Firebase restores browserLocalPersistence before deciding which screen to show.
   $("startupScreen").classList.add("hidden");
+  $("startupFallback")?.classList.add("hidden");
   authSection.classList.toggle("hidden", !!user);
   workspace.classList.toggle("hidden", !user);
 
@@ -1574,10 +1602,16 @@ $("messageForm").addEventListener("submit", async e => {
   }
 });
 
-    <div class="sub">Private chats with your friends</div>
-  </div>
-  <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
 
-</header>
-
-<div id="main">
+</script>
+<script>
+window.setTimeout(() => {
+  const startup = document.getElementById("startupScreen");
+  if (startup && !startup.classList.contains("hidden")) {
+    startup.classList.add("hidden");
+    document.getElementById("startupFallback")?.classList.remove("hidden");
+  }
+}, 12000);
+</script>
+</body>
+</html>
