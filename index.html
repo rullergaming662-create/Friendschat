@@ -305,21 +305,27 @@ button {
 .photo-viewer-actions {display:flex;gap:10px;margin-top:12px}
 .photo-viewer-actions a,.photo-viewer-actions button {background:#27314b;color:white;padding:10px 16px;border-radius:10px;text-decoration:none}
 
-/* Message selection ticks live outside the bubble, in the free margin. */
+/* Message selection controls: tick sits in the free gutter beside each bubble. */
+.message-select-bar {display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--panel);border-top:1px solid var(--line);flex-wrap:nowrap;min-height:58px;box-sizing:border-box}
+.message-select-bar.hidden {display:none!important}
+.message-select-bar #selectedMessageCount {flex:1;min-width:58px;color:var(--muted)!important;font-size:14px;font-weight:600;white-space:nowrap}
+.message-select-bar button {background:#e1e7f5;color:#182033;padding:10px 12px;border-radius:12px;min-height:42px;font-size:14px;font-weight:600;white-space:nowrap}
+.message-select-bar button.danger {background:#b52f4b;color:#fff}
+.message-select-bar button:disabled {opacity:.35;cursor:not-allowed}
 .bubble.selectable {cursor:pointer;position:relative;user-select:none;-webkit-user-select:none;touch-action:pan-y}
 .bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
-.selection-check {position:absolute;left:-34px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:25px;height:25px;border-radius:50%;border:1px solid #9aa9d0;background:#eef2ff;color:#5968e8;font-size:15px;font-weight:800;margin:0;padding:0;cursor:pointer;box-shadow:0 2px 7px #0002;z-index:3}
-.selection-check.checked {background:#6577ff;border-color:#aebaff;color:#fff}
+/* Position the selection tick outside the message bubble, in the left/right gutter. */
+.selection-check {position:absolute;top:10px;left:-31px;z-index:2;display:grid;place-items:center;width:23px;height:23px;border-radius:50%;border:2px solid #9aa9d0;background:var(--panel);color:#fff;font-size:14px;font-weight:800;margin:0;padding:0;cursor:pointer;box-shadow:0 1px 5px #0002}
+.bubble.mine .selection-check {left:auto;right:-31px}
+.selection-check.checked {background:#5968e8;border-color:#5968e8;color:#fff}
 .selection-check:focus-visible {outline:2px solid var(--primary);outline-offset:2px}
-.message-select-bar {display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--panel);border-top:1px solid var(--line);flex-wrap:wrap;box-shadow:0 -5px 18px #0000000b}
-.message-select-bar.hidden {display:none!important}
-.message-select-bar #selectedMessageCount {flex:1 1 100%;color:var(--muted);font-size:13px;font-weight:700;padding:0 2px}
-.message-select-bar button {background:#e1e7f5;color:#20283b;padding:10px 14px;border-radius:12px;font-size:14px;font-weight:700;min-height:42px;transition:transform .12s ease,opacity .12s ease}
-.message-select-bar button.danger {background:linear-gradient(135deg,#d9435b,#a91f3b);color:#fff;box-shadow:0 4px 12px #a8324a33}
-.message-select-bar button:disabled {opacity:.4;cursor:not-allowed}
-:root:not([data-theme="light"]) .message-select-bar button:not(.danger) {background:#303c59;color:#edf1ff}
-.message-select-bar button:active:not(:disabled) {transform:scale(.98)}
-@media(max-width:480px) { .message-select-bar {gap:7px;padding:9px} .message-select-bar button {flex:1 1 auto} .message-select-bar button.danger {flex-basis:100%} .selection-check {left:-31px;width:24px;height:24px} }
+@media(max-width:600px){
+ .message-select-bar {gap:6px;padding:8px 9px;min-height:54px}
+ .message-select-bar #selectedMessageCount {font-size:12px;min-width:45px}
+ .message-select-bar button {padding:9px 10px;font-size:12px;min-height:40px;border-radius:10px}
+ .selection-check {left:-27px;width:21px;height:21px}
+ .bubble.mine .selection-check {right:-27px}
+}
 .empty {
   text-align:center;
   padding:25px;
@@ -388,16 +394,13 @@ button {
 <body>
 
 <div id="app">
-<div id="startupScreen" class="startup-screen">Opening FriendChat…</div>
-<div id="startupFallback" class="startup-screen hidden" style="z-index:10000;font-size:14px;text-align:center;padding:24px;">
-  FriendChat is taking longer than expected. Check your internet connection and reload the page.
-</div>
+<div id="startupScreen" class="startup-screen">Opening Chatzapp…</div>
 
 <section id="auth" class="hidden">
 
 <header>
   <div>
-    <div class="brand">◉ FriendChat</div>
+    <div class="brand">◉ Chatzapp</div>
     <div class="sub">Private chats with your friends</div>
   </div>
 </header>
@@ -410,7 +413,7 @@ button {
 
   <form id="signupForm" class="auth-form active">
     <h2>Sign Up 👋</h2>
-    <p>Create your FriendChat account to start chatting.</p>
+    <p>Create your Chatzapp account to start chatting.</p>
     <label for="signupPhoto">Profile photo (optional)</label>
     <input id="signupPhoto" type="file" accept="image/*">
     <input id="signupName" placeholder="Your name" autocomplete="name" required minlength="2">
@@ -435,7 +438,7 @@ button {
 
 <header>
   <div style="flex:1">
-    <div class="brand">◉ FriendChat</div>
+    <div class="brand">◉ Chatzapp</div>
     <div class="sub">Private chats with your friends</div>
   </div>
   <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
@@ -484,7 +487,7 @@ button {
 
 <div id="messages" class="messages"></div>
 <div id="messageSelectBar" class="message-select-bar hidden">
-  <span id="selectedMessageCount">0 selected</span>
+  <span id="selectedMessageCount" style="flex:1;color:#edf1ff">0 selected</span>
   <button id="cancelMessageSelect" type="button">Cancel</button>
   <button id="deleteForMeBtn" type="button">Delete for me</button>
   <button id="deleteForEveryoneBtn" class="danger" type="button">Delete for everyone</button>
@@ -578,8 +581,7 @@ import {
   onSnapshot,
   serverTimestamp,
   updateDoc,
-  runTransaction,
-  limit
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 /* Firebase configuration */
@@ -600,30 +602,6 @@ const db = getFirestore(app);
 const authPersistenceReady = setPersistence(auth, browserLocalPersistence);
 
 const $ = id => document.getElementById(id);
-
-// Light/Dark mode toggle, remembered on this device.
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  try { localStorage.setItem("friendchat-theme", theme); } catch (_) {}
-  const label = theme === "light" ? "🌙 Dark" : "☀️ Light";
-  ["themeToggle", "themeToggleWorkspace"].forEach(id => {
-    const button = $(id);
-    if (button) {
-      button.textContent = label;
-      button.setAttribute("aria-label", theme === "light" ? "Switch to dark mode" : "Switch to light mode");
-      button.title = theme === "light" ? "Switch to dark mode" : "Switch to light mode";
-    }
-  });
-}
-let savedTheme = "dark";
-try { savedTheme = localStorage.getItem("friendchat-theme") || "dark"; } catch (_) {}
-applyTheme(savedTheme === "light" ? "light" : "dark");
-function toggleTheme() {
-  applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
-}
-document.addEventListener("click", event => {
-  if (event.target.closest("#themeToggle, #themeToggleWorkspace")) toggleTheme();
-});
 
 let currentUser = null;
 let selectedUser = null;
@@ -802,7 +780,6 @@ onAuthStateChanged(auth, async user => {
   currentUser = user;
   // Firebase restores browserLocalPersistence before deciding which screen to show.
   $("startupScreen").classList.add("hidden");
-  $("startupFallback")?.classList.add("hidden");
   authSection.classList.toggle("hidden", !!user);
   workspace.classList.toggle("hidden", !user);
 
@@ -818,13 +795,20 @@ onAuthStateChanged(auth, async user => {
       await saveProfile(user, name);
       // Mark this account online as soon as authentication is restored.
       await setDoc(doc(db, "users", user.uid), { online:true, lastSeen:serverTimestamp() }, { merge:true });
+      if (presenceHeartbeat) clearInterval(presenceHeartbeat);
+      presenceHeartbeat = setInterval(() => {
+        if (currentUser && currentUser.uid === user.uid) {
+          setDoc(doc(db, "users", user.uid), { online:true, lastSeen:serverTimestamp() }, { merge:true }).catch(err => console.warn("Presence heartbeat:", err));
+        }
+      }, 20000);
       await loadUsers();
       listenRecentChats();
     } catch (err) {
       showError("signinError", friendlyError(err));
       console.error(err);
     }
-  } else {
+   } else {
+    if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
     cleanupChat();
     setAuthMode("signin");
   }
@@ -907,12 +891,14 @@ $("signupForm").addEventListener("submit", async e => {
 });
 
 window.addEventListener("beforeunload", () => {
+  if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
   if (currentUser) setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
 });
 
 /* Settings and logout */
 $("settingsLogoutBtn").addEventListener("click", async () => {
   $("profileModal").classList.add("hidden");
+  if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
   if (currentUser) await setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
   await signOut(auth);
 });
@@ -953,6 +939,16 @@ function listenRecentChats() {
     err => console.warn("Recent chats listener:", err)
   );
 }
+// Treat a user as online only when their heartbeat is recent.
+function isUserOnline(user) {
+  if (!user) return false;
+  const stamp = user.lastSeen;
+  const lastSeenMs = stamp && typeof stamp.toMillis === "function"
+    ? stamp.toMillis()
+    : (stamp instanceof Date ? stamp.getTime() : 0);
+  return user.online === true && lastSeenMs > 0 && (Date.now() - lastSeenMs) < 60000;
+}
+
 function renderRecentChats() {
   const normalList = $("recentList");
   if (!normalList) return;
@@ -971,10 +967,9 @@ function renderRecentChats() {
       const avatar = document.createElement("div"); avatar.className = "avatar"; renderAvatar(avatar, peer.name, peer.photoData || "");
       const meta = document.createElement("div"); meta.className = "recent-meta";
       const name = document.createElement("div"); name.className = "recent-name"; name.textContent = peer.name;
-      if (peer.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
-      const last = document.createElement("div"); last.className = "recent-last"; last.textContent = record.lastMessage || "Chat started";
-      meta.append(name,last);
-      if (peer.online === true) { const status=document.createElement("div"); status.className="person-status"; status.textContent="Online"; meta.appendChild(status); }
+      if (isUserOnline(peer)) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
+      meta.append(name);
+      const status=document.createElement("div"); status.className="person-status"; status.textContent=isUserOnline(peer) ? "Online" : "Offline"; meta.appendChild(status);
       if (Number(record.unreadCount || 0) > 0) { const badge = document.createElement("span"); badge.className = "recent-badge"; badge.textContent = "New Message"; meta.appendChild(badge); }
       row.append(avatar,meta); row.addEventListener("click", () => openChat(peer)); list.appendChild(row);
     });
@@ -1046,9 +1041,9 @@ function renderUsers() {
     const nameLine = document.createElement("span");
     nameLine.className = "person-name-line";
     nameLine.textContent = u.name;
-    if (u.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; nameLine.appendChild(dot); }
+    if (isUserOnline(u)) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; nameLine.appendChild(dot); }
     name.appendChild(nameLine);
-    if (u.online === true) { const status=document.createElement("span"); status.className="person-status"; status.textContent="Online"; name.appendChild(status); }
+    const status=document.createElement("span"); status.className="person-status"; status.textContent=isUserOnline(u) ? "Online" : "Offline"; name.appendChild(status);
     name.addEventListener("click", () => openChat(u));
 
     row.append(avatarButton, name);
@@ -1219,9 +1214,17 @@ async function deleteSelectedMessages(forEveryone) {
   if (!currentUser || !currentChatId || selectedMessageIds.size === 0) return;
   const ids = [...selectedMessageIds];
   const verb = forEveryone ? "everyone" : "you";
-  if (!confirm(`Delete ${ids.length} selected message${ids.length === 1 ? "" : "s"} for ${verb}?`)) return;
-  const deleteButtons = [$("deleteForMeBtn"), $("deleteForEveryoneBtn")];
-  deleteButtons.forEach(button => { button.disabled = true; button.dataset.oldText = button.textContent; button.textContent = "Deleting…"; });
+  if (forEveryone && ids.some(id => {
+    const el = document.querySelector(`#messages [data-message-id="${CSS.escape(id)}"]`);
+    return !el || el.dataset.senderId !== currentUser.uid;
+  })) {
+    alert("Delete for everyone is available only for messages you sent.");
+    return;
+  }
+  if (!confirm(`Delete ${ids.length} selected message${ids.length === 1 ? "" : "s"} ${forEveryone ? "for everyone" : "for you"}?`)) return;
+  const actionButton = forEveryone ? $("deleteForEveryoneBtn") : $("deleteForMeBtn");
+  actionButton.disabled = true;
+  actionButton.textContent = "Deleting…";
   try {
     const jobs = ids.map(async id => {
       const ref = doc(db, "chats", currentChatId, "messages", id);
@@ -1245,8 +1248,8 @@ async function deleteSelectedMessages(forEveryone) {
   } catch (err) {
     alert("Could not delete selected messages: " + friendlyError(err));
   } finally {
-    deleteButtons.forEach(button => { button.textContent = button.dataset.oldText || button.textContent; delete button.dataset.oldText; });
-    updateMessageSelectionUI();
+    actionButton.disabled = false;
+    actionButton.textContent = forEveryone ? "Delete for everyone" : "Delete for me";
   }
 }
 $("deleteForMeBtn").addEventListener("click", () => deleteSelectedMessages(false));
@@ -1297,11 +1300,9 @@ function openChat(friend, isSecret = false) {
   // listener below refreshes the preview with the actual latest message.
   saveRecentChat(friend, null, 0, currentUser.uid, activeChatSecret).catch(err => console.warn(err));
 
-  // Fetch a bounded recent window for faster mobile rendering.
   const messagesQuery = query(
     collection(db, "chats", chatId, "messages"),
-    orderBy("createdAt", "desc"),
-    limit(120)
+    orderBy("createdAt", "asc")
   );
 
   unsubscribeMessages = onSnapshot(
@@ -1311,7 +1312,7 @@ function openChat(friend, isSecret = false) {
         const m = item.data();
         return !(Array.isArray(m.deletedFor) && m.deletedFor.includes(currentUser.uid)) && !(Array.isArray(m.hiddenFor) && m.hiddenFor.includes(currentUser.uid));
       });
-      const latestDoc = visibleDocs.length ? visibleDocs[0] : null;
+      const latestDoc = visibleDocs.length ? visibleDocs[visibleDocs.length - 1] : null;
       if (latestDoc) {
         const latestMessage = latestDoc.data();
         const incoming = latestMessage.senderId !== currentUser.uid;
@@ -1330,8 +1331,7 @@ function openChat(friend, isSecret = false) {
       });
       $("messages").innerHTML = "";
 
-      // The query is newest-first; render in chronological order.
-      [...snapshot.docs].reverse().forEach(item => {
+      snapshot.forEach(item => {
         const message = item.data();
         if (Array.isArray(message.deletedFor) && message.deletedFor.includes(currentUser.uid)) return;
         if (Array.isArray(message.hiddenFor) && message.hiddenFor.includes(currentUser.uid)) return;
@@ -1610,15 +1610,25 @@ $("messageForm").addEventListener("submit", async e => {
 });
 
 
-</script>
-<script>
-window.setTimeout(() => {
-  const startup = document.getElementById("startupScreen");
-  if (startup && !startup.classList.contains("hidden")) {
-    startup.classList.add("hidden");
-    document.getElementById("startupFallback")?.classList.remove("hidden");
+// Light/Dark theme toggle. Keep the selected theme across reloads.
+const themeToggle = $("themeToggle");
+function applyTheme(theme) {
+  const light = theme === "light";
+  document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
+  if (themeToggle) {
+    themeToggle.textContent = light ? "🌙 Dark" : "☀️ Light";
+    themeToggle.setAttribute("aria-label", light ? "Switch to dark mode" : "Switch to light mode");
   }
-}, 12000);
+}
+let savedTheme = "dark";
+try { savedTheme = localStorage.getItem("chatzapp-theme") || "dark"; } catch (_) {}
+applyTheme(savedTheme);
+if (themeToggle) themeToggle.addEventListener("click", () => {
+  const nextTheme = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+  applyTheme(nextTheme);
+  try { localStorage.setItem("chatzapp-theme", nextTheme); } catch (_) {}
+});
+
 </script>
 </body>
 </html>
