@@ -546,23 +546,6 @@ button {
   </div>
 </div>
 
-<script>
-// Fail-safe: if Firebase's module/network initialization fails, never leave
-// the user stuck on the startup overlay forever. Reveal the sign-in screen.
-window.__chatzappStartupFallback = setTimeout(() => {
-  const startup = document.getElementById('startupScreen');
-  const auth = document.getElementById('auth');
-  const workspace = document.getElementById('workspace');
-  if (startup) startup.classList.add('hidden');
-  if (auth) auth.classList.remove('hidden');
-  if (workspace) workspace.classList.add('hidden');
-  const error = document.getElementById('signinError');
-  if (error && !error.textContent) {
-    error.textContent = 'App initialization took too long. Check your internet connection and reload.';
-  }
-}, 10000);
-</script>
-
 <script type="module">
 
 import {
@@ -792,7 +775,6 @@ async function saveProfile(user, name, photoData = "") {
 
 /* Authentication */
 onAuthStateChanged(auth, async user => {
-  if (window.__chatzappStartupFallback) clearTimeout(window.__chatzappStartupFallback);
   currentUser = user;
   // Firebase restores browserLocalPersistence before deciding which screen to show.
   $("startupScreen").classList.add("hidden");
