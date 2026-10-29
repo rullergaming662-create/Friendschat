@@ -15,6 +15,50 @@
   --line:#293149;
 }
 
+/* Light theme palette; dark remains the default. */
+:root[data-theme="light"] {
+  --bg:#f3f5fb;
+  --panel:#ffffff;
+  --primary:#5968e8;
+  --text:#182033;
+  --muted:#68738a;
+  --line:#dce2ef;
+}
+:root[data-theme="light"] body { background:var(--bg); color:var(--text); }
+:root[data-theme="light"] input {
+  background:#f8faff;
+  color:#182033;
+  border-color:#dce2ef;
+}
+:root[data-theme="light"] .secondary,
+:root[data-theme="light"] .auth-tabs,
+:root[data-theme="light"] .attach-menu,
+:root[data-theme="light"] .message-select-bar { background:#e9edf8; color:#182033; }
+:root[data-theme="light"] .auth-tab { color:#68738a; }
+:root[data-theme="light"] .auth-tab.active { color:#fff; }
+:root[data-theme="light"] .bubble { background:#e8edf8; color:#182033; }
+:root[data-theme="light"] .bubble.mine { background:#dce3ff; }
+:root[data-theme="light"] .person { color:#182033; }
+:root[data-theme="light"] .person.active,
+:root[data-theme="light"] .recent-person:hover { background:#e9edf8; }
+:root[data-theme="light"] .chat-head,
+:root[data-theme="light"] .composer,
+:root[data-theme="light"] .image-preview-wrap { background:#fff; }
+:root[data-theme="light"] .attach-option { color:#182033; }
+:root[data-theme="light"] .attach-option:hover,
+:root[data-theme="light"] .attach-option:focus { background:#dce3f5; }
+:root[data-theme="light"] .photo-viewer { background:#f3f5fb; }
+:root[data-theme="light"] .photo-viewer-actions a,
+:root[data-theme="light"] .photo-viewer-actions button { background:#dce3f5; color:#182033; }
+:root[data-theme="light"] .modal-card { background:#fff; color:#182033; }
+:root[data-theme="light"] .modal-close { background:#e9edf8; color:#182033; }
+:root[data-theme="light"] .message-select-bar button { background:#d2daf0; color:#182033; }
+:root[data-theme="light"] .message-select-bar button.danger { background:#a8324a; color:#fff; }
+:root[data-theme="light"] .selection-check { background:#fff; color:#5968e8; border-color:#5968e8; }
+:root[data-theme="light"] .selection-check.checked { background:#5968e8; color:#fff; }
+.theme-toggle { flex:0 0 auto; background:#27314b; color:#fff; border:1px solid #ffffff30; border-radius:12px; padding:10px 13px; font-size:14px; font-weight:700; }
+:root[data-theme="light"] .theme-toggle { background:#fff; color:#182033; border-color:#dce2ef; }
+
 * { box-sizing:border-box; }
 
 body {
@@ -339,9 +383,6 @@ button {
 
 .startup-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--bg,#0e1422);color:var(--text,#eef2ff);font-weight:700;font-size:18px;letter-spacing:.2px}
 .startup-screen.hidden{display:none}
-
-.send-button { min-width:54px; min-height:54px; border-radius:16px; font-size:25px; font-weight:800; display:grid; place-items:center; box-shadow:0 5px 16px rgba(101,119,255,.24); }
-.send-button:active { transform:scale(.96); }
 </style>
 </head>
 
@@ -395,6 +436,7 @@ button {
     <div class="brand">◉ Chatzapp</div>
     <div class="sub">Private chats with your friends</div>
   </div>
+  <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
 
 </header>
 
@@ -469,7 +511,7 @@ button {
     placeholder="Type a message..."
     autocomplete="off">
 
-  <button class="primary send-button" type="submit" aria-label="Send message" title="Send">➤</button>
+  <button class="primary" type="submit">➤</button>
 </form>
 
 </div>
@@ -729,20 +771,7 @@ async function saveProfile(user, name, photoData = "") {
 }
 
 /* Authentication */
-// Fail-safe: if Firebase module/auth initialization is delayed or fails,
-// reveal the sign-in screen instead of leaving the user on an endless loader.
-const startupFailSafe = setTimeout(() => {
-  const startup = $("startupScreen");
-  if (startup && !startup.classList.contains("hidden")) {
-    startup.classList.add("hidden");
-    authSection.classList.remove("hidden");
-    workspace.classList.add("hidden");
-    showError("signinError", "Loading took too long. Check your internet connection and refresh.");
-  }
-}, 7000);
-
 onAuthStateChanged(auth, async user => {
-  clearTimeout(startupFailSafe);
   currentUser = user;
   // Firebase restores browserLocalPersistence before deciding which screen to show.
   $("startupScreen").classList.add("hidden");
@@ -759,13 +788,22 @@ onAuthStateChanged(auth, async user => {
       renderAvatar($("myAvatar"), name, profile.photoData || "");
 
       await saveProfile(user, name);
+      // Mark this account online as soon as authentication is restored.
+      await setDoc(doc(db, "users", user.uid), { online:true, lastSeen:serverTimestamp() }, { merge:true });
+      if (presenceHeartbeat) clearInterval(presenceHeartbeat);
+      presenceHeartbeat = setInterval(() => {
+        if (currentUser && currentUser.uid === user.uid) {
+          setDoc(doc(db, "users", user.uid), { online:true, lastSeen:serverTimestamp() }, { merge:true }).catch(err => console.warn("Presence heartbeat:", err));
+        }
+      }, 20000);
       await loadUsers();
       listenRecentChats();
     } catch (err) {
       showError("signinError", friendlyError(err));
       console.error(err);
     }
-  } else {
+   } else {
+    if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
     cleanupChat();
     setAuthMode("signin");
   }
@@ -848,11 +886,17 @@ $("signupForm").addEventListener("submit", async e => {
 });
 
 window.addEventListener("beforeunload", () => {
+  if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
   if (currentUser) setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
 });
 
 /* Settings and logout */
-$("settingsLogoutBtn").addEventListener("click", async () => { $("profileModal").classList.add("hidden"); await signOut(auth); });
+$("settingsLogoutBtn").addEventListener("click", async () => {
+  $("profileModal").classList.add("hidden");
+  if (presenceHeartbeat) { clearInterval(presenceHeartbeat); presenceHeartbeat = null; }
+  if (currentUser) await setDoc(doc(db, "users", currentUser.uid), { online:false, lastSeen:serverTimestamp() }, { merge:true }).catch(()=>{});
+  await signOut(auth);
+});
 
 /* Recent chats: only users with a conversation are listed, newest activity first. */
 function recentPreview(data) {
@@ -890,6 +934,16 @@ function listenRecentChats() {
     err => console.warn("Recent chats listener:", err)
   );
 }
+// Treat a user as online only when their heartbeat is recent.
+function isUserOnline(user) {
+  if (!user) return false;
+  const stamp = user.lastSeen;
+  const lastSeenMs = stamp && typeof stamp.toMillis === "function"
+    ? stamp.toMillis()
+    : (stamp instanceof Date ? stamp.getTime() : 0);
+  return user.online === true && lastSeenMs > 0 && (Date.now() - lastSeenMs) < 60000;
+}
+
 function renderRecentChats() {
   const normalList = $("recentList");
   if (!normalList) return;
@@ -908,10 +962,9 @@ function renderRecentChats() {
       const avatar = document.createElement("div"); avatar.className = "avatar"; renderAvatar(avatar, peer.name, peer.photoData || "");
       const meta = document.createElement("div"); meta.className = "recent-meta";
       const name = document.createElement("div"); name.className = "recent-name"; name.textContent = peer.name;
-      if (peer.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
-      const last = document.createElement("div"); last.className = "recent-last"; last.textContent = record.lastMessage || "Chat started";
-      meta.append(name,last);
-      if (peer.online === true) { const status=document.createElement("div"); status.className="person-status"; status.textContent="Online"; meta.appendChild(status); }
+      if (isUserOnline(peer)) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; name.appendChild(dot); }
+      meta.append(name);
+      const status=document.createElement("div"); status.className="person-status"; status.textContent=isUserOnline(peer) ? "Online" : "Offline"; meta.appendChild(status);
       if (Number(record.unreadCount || 0) > 0) { const badge = document.createElement("span"); badge.className = "recent-badge"; badge.textContent = "New Message"; meta.appendChild(badge); }
       row.append(avatar,meta); row.addEventListener("click", () => openChat(peer)); list.appendChild(row);
     });
@@ -983,9 +1036,9 @@ function renderUsers() {
     const nameLine = document.createElement("span");
     nameLine.className = "person-name-line";
     nameLine.textContent = u.name;
-    if (u.online === true) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; nameLine.appendChild(dot); }
+    if (isUserOnline(u)) { const dot=document.createElement("span"); dot.className="online-dot"; dot.title="Online"; nameLine.appendChild(dot); }
     name.appendChild(nameLine);
-    if (u.online === true) { const status=document.createElement("span"); status.className="person-status"; status.textContent="Online"; name.appendChild(status); }
+    const status=document.createElement("span"); status.className="person-status"; status.textContent=isUserOnline(u) ? "Online" : "Offline"; name.appendChild(status);
     name.addEventListener("click", () => openChat(u));
 
     row.append(avatarButton, name);
@@ -1245,8 +1298,20 @@ function openChat(friend, isSecret = false) {
       const latestDoc = visibleDocs.length ? visibleDocs[visibleDocs.length - 1] : null;
       if (latestDoc) {
         const latestMessage = latestDoc.data();
+        const incoming = latestMessage.senderId !== currentUser.uid;
+        // When the recipient is currently viewing this chat, update their own
+        // recent-chat record too; unread badge is cleared while the chat is open.
         saveRecentChat(friend, latestMessage, 0, currentUser.uid, activeChatSecret).catch(err => console.warn(err));
       }
+      // Keep the sender's recent chat updated whenever messages arrive in this
+      // active conversation. The receiver's own recent record is also refreshed.
+      snapshot.docs.forEach(item => {
+        const m = item.data();
+        if (m.senderId !== currentUser.uid && m.receiverId === currentUser.uid) {
+          const sender = allUsers.find(u => u.uid === m.senderId) || {uid:m.senderId,name:friend.name,photoData:friend.photoData||""};
+          saveRecentChat(sender, m, 0, currentUser.uid, false).catch(err => console.warn("Receiver recent chat:", err));
+        }
+      });
       $("messages").innerHTML = "";
 
       snapshot.forEach(item => {
@@ -1457,55 +1522,96 @@ $("backBtn").addEventListener("click", () => {
   $("chatPanel").classList.remove("chat-open");
 });
 
-/* Send text, photo, or photo with a caption */
+/* Send text, photo, audio, or file */
+let messageSendInProgress = false;
 $("messageForm").addEventListener("submit", async e => {
   e.preventDefault();
+  if (messageSendInProgress) return;
 
-  const text = $("messageInput").value.trim();
+  const input = $("messageInput");
+  const text = input.value.trim();
   const imageData = selectedImageData;
   const attachment = selectedAttachment;
 
-  if ((!text && !imageData) || !currentUser || !selectedUser) {
-    return;
-  }
+  if ((!text && !imageData) || !currentUser || !selectedUser) return;
 
   const chatId = conversationId(currentUser.uid, selectedUser.uid);
-
   const payload = {
     type: attachment ? attachment.type : (imageData ? "image" : "text"),
-    text: text,
+    text,
     senderId: currentUser.uid,
     receiverId: selectedUser.uid,
     createdAt: serverTimestamp(),
     readAt: null
   };
   if (imageData) payload.imageData = imageData;
-  if (attachment) { payload.fileName=attachment.name; payload.mimeType=attachment.mimeType; }
+  if (attachment) {
+    payload.fileName = attachment.name;
+    payload.mimeType = attachment.mimeType;
+  }
 
-  const oldText = $("messageInput").value;
-  $("messageInput").value = "";
+  const oldText = input.value;
+  messageSendInProgress = true;
+  const sendButton = $("sendBtn");
+  if (sendButton) sendButton.disabled = true;
 
   try {
+    // The message itself is the primary operation. Do not treat recent-chat
+    // metadata failures as a failed message after the message was committed.
     await addDoc(collection(db, "chats", chatId, "messages"), payload);
-    // Sender's recent list: move this conversation to the top.
-    await saveRecentChat(selectedUser, payload, 0, currentUser.uid, activeChatSecret);
-    // Receiver's recent list: show a New Message badge.
-    const myProfile = { uid: currentUser.uid, name: $("myName").textContent || "Friend", photoData: "" };
-    const avatarImg = $("myAvatar").querySelector("img");
-    if (avatarImg) myProfile.photoData = avatarImg.src;
-    // Receiver-side Recent Chat record lets the incoming conversation appear
-    // with a New Message badge (Firestore rules must permit this sender-owned update).
-    await saveRecentChat(myProfile, payload, 1, selectedUser.uid).catch(err => console.warn("Receiver recent-chat update blocked by Firestore Rules:", err));
+    input.value = "";
     clearSelectedImage();
 
-
+    // Best-effort recent chat updates. Firestore rules may independently
+    // restrict these writes; that must not undo or falsely fail the message.
+    try {
+      await saveRecentChat(selectedUser, payload, 0, currentUser.uid, activeChatSecret);
+    } catch (recentErr) {
+      console.warn("Sender recent-chat update blocked:", recentErr);
+    }
+    try {
+      const myProfile = {
+        uid: currentUser.uid,
+        name: $("myName").textContent || "Friend",
+        photoData: ""
+      };
+      const avatarImg = $("myAvatar").querySelector("img");
+      if (avatarImg) myProfile.photoData = avatarImg.src;
+      await saveRecentChat(myProfile, payload, 1, selectedUser.uid);
+    } catch (recentErr) {
+      console.warn("Receiver recent-chat update blocked:", recentErr);
+    }
   } catch (err) {
+    console.error("Message send failed:", err);
     alert("Message send nahi hua: " + friendlyError(err));
-    $("messageInput").value = oldText;
+    input.value = oldText;
+  } finally {
+    messageSendInProgress = false;
+    if (sendButton) sendButton.disabled = false;
+    input.focus();
   }
 });
 
-</script>
 
+// Light/Dark theme toggle. Keep the selected theme across reloads.
+const themeToggle = $("themeToggle");
+function applyTheme(theme) {
+  const light = theme === "light";
+  document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
+  if (themeToggle) {
+    themeToggle.textContent = light ? "🌙 Dark" : "☀️ Light";
+    themeToggle.setAttribute("aria-label", light ? "Switch to dark mode" : "Switch to light mode");
+  }
+}
+let savedTheme = "dark";
+try { savedTheme = localStorage.getItem("chatzapp-theme") || "dark"; } catch (_) {}
+applyTheme(savedTheme);
+if (themeToggle) themeToggle.addEventListener("click", () => {
+  const nextTheme = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+  applyTheme(nextTheme);
+  try { localStorage.setItem("chatzapp-theme", nextTheme); } catch (_) {}
+});
+
+</script>
 </body>
 </html>
