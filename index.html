@@ -310,6 +310,24 @@ button {
 .message-select-bar button {background:#39486a;color:#edf1ff;padding:9px 12px;border-radius:9px}
 .message-select-bar button.danger {background:#a8324a}
 .message-select-bar button:disabled {opacity:.45;cursor:not-allowed}
+
+.message-select-bar{position:relative;display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--panel);border-top:1px solid var(--line);flex-wrap:nowrap;min-height:58px;z-index:25}
+.selected-message-count{font-weight:700;min-width:18px;color:var(--text);font-size:17px}
+.select-action-icon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:50%;background:transparent!important;color:var(--text)!important;padding:0!important;font-size:26px}
+.selection-quick-reactions{display:flex;align-items:center;justify-content:flex-end;gap:2px;flex:1;min-width:0;overflow:hidden}
+.selection-quick-reactions button{flex:0 0 auto;border:0;background:transparent;color:var(--text);padding:4px;font-size:clamp(19px,5vw,26px);line-height:1;border-radius:50%}
+.selection-quick-reactions button:active{transform:scale(1.14)}
+.selection-quick-reactions #selectionMoreEmoji{font-size:24px;background:#6b7280;color:#fff;width:36px;height:36px;padding:0}
+.selection-emoji-picker{position:absolute;z-index:80;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:min(340px,92vw);max-height:230px;overflow:auto;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;padding:10px;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:0 12px 35px #0004}
+.selection-emoji-picker.hidden{display:none!important}
+.selection-emoji-picker button{border:0;background:transparent;color:var(--text);font-size:23px;padding:5px;border-radius:9px}
+.selection-emoji-picker button:active{background:var(--line)}
+.delete-message-card h3{margin:0 0 8px;font-size:20px}
+.delete-message-note{color:var(--muted);margin:0 0 16px;font-size:14px}
+.delete-choice{display:block;width:100%;padding:13px 12px;margin-top:8px;border-radius:11px;background:var(--panel);color:var(--text);text-align:left;border:1px solid var(--line);font-size:15px}
+.delete-choice.delete-everyone{color:#e5484d;font-weight:700}
+.delete-choice.delete-cancel{text-align:center;background:var(--line)}
+@media(max-width:420px){.message-select-bar{gap:5px;padding:7px}.select-action-icon{width:34px;flex-basis:34px}.selection-quick-reactions button{padding:3px;font-size:20px}.selection-quick-reactions #selectionMoreEmoji{width:30px;height:30px;font-size:21px}}
 .bubble.selectable {cursor:default;position:relative}
 .bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
 .selection-check {display:inline-grid;place-items:center;flex:0 0 22px;width:22px;height:22px;border-radius:6px;border:2px solid #9aa9d0;background:#111827;color:white;font-size:14px;font-weight:bold;margin:0 8px 0 0;padding:0;vertical-align:middle;cursor:pointer}
@@ -318,6 +336,24 @@ button {
 .message-select-bar button {background:#39486a;color:#edf1ff;padding:9px 12px;border-radius:9px}
 .message-select-bar button.danger {background:#a8324a}
 .message-select-bar button:disabled {opacity:.45;cursor:not-allowed}
+
+.message-select-bar{position:relative;display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--panel);border-top:1px solid var(--line);flex-wrap:nowrap;min-height:58px;z-index:25}
+.selected-message-count{font-weight:700;min-width:18px;color:var(--text);font-size:17px}
+.select-action-icon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:50%;background:transparent!important;color:var(--text)!important;padding:0!important;font-size:26px}
+.selection-quick-reactions{display:flex;align-items:center;justify-content:flex-end;gap:2px;flex:1;min-width:0;overflow:hidden}
+.selection-quick-reactions button{flex:0 0 auto;border:0;background:transparent;color:var(--text);padding:4px;font-size:clamp(19px,5vw,26px);line-height:1;border-radius:50%}
+.selection-quick-reactions button:active{transform:scale(1.14)}
+.selection-quick-reactions #selectionMoreEmoji{font-size:24px;background:#6b7280;color:#fff;width:36px;height:36px;padding:0}
+.selection-emoji-picker{position:absolute;z-index:80;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:min(340px,92vw);max-height:230px;overflow:auto;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;padding:10px;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:0 12px 35px #0004}
+.selection-emoji-picker.hidden{display:none!important}
+.selection-emoji-picker button{border:0;background:transparent;color:var(--text);font-size:23px;padding:5px;border-radius:9px}
+.selection-emoji-picker button:active{background:var(--line)}
+.delete-message-card h3{margin:0 0 8px;font-size:20px}
+.delete-message-note{color:var(--muted);margin:0 0 16px;font-size:14px}
+.delete-choice{display:block;width:100%;padding:13px 12px;margin-top:8px;border-radius:11px;background:var(--panel);color:var(--text);text-align:left;border:1px solid var(--line);font-size:15px}
+.delete-choice.delete-everyone{color:#e5484d;font-weight:700}
+.delete-choice.delete-cancel{text-align:center;background:var(--line)}
+@media(max-width:420px){.message-select-bar{gap:5px;padding:7px}.select-action-icon{width:34px;flex-basis:34px}.selection-quick-reactions button{padding:3px;font-size:20px}.selection-quick-reactions #selectionMoreEmoji{width:30px;height:30px;font-size:21px}}
 .bubble.selectable {cursor:pointer;position:relative;user-select:none;-webkit-user-select:none;touch-action:pan-y}
 .bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
 .selection-check {display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#6577ff;color:white;font-size:13px;font-weight:bold;margin-right:7px;vertical-align:middle}
@@ -384,29 +420,16 @@ button {
 .startup-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--bg,#0e1422);color:var(--text,#eef2ff);font-weight:700;font-size:18px;letter-spacing:.2px}
 .startup-screen.hidden{display:none}
 
-/* WhatsApp-like double-tap reaction bar and full emoji picker */
-.reaction-area{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:7px;position:relative;max-width:100%}
-.bubble.mine .reaction-area{align-items:flex-end}
-.reaction-list{display:flex;flex-wrap:wrap;gap:5px;max-width:100%}
-.reaction-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid color-mix(in srgb,var(--primary) 38%,var(--line));background:color-mix(in srgb,var(--panel) 82%,var(--primary));color:var(--text);border-radius:999px;padding:4px 9px;font-size:15px;line-height:1.25}
-.reaction-chip.mine-reaction{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 18%,var(--panel))}
-.reaction-count{font-size:11px;color:var(--muted);font-weight:700}
-.reaction-quickbar{position:absolute;z-index:110;left:0;top:100%;bottom:auto;margin-top:8px;display:flex;align-items:center;gap:4px;padding:7px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 10px 28px #0005;white-space:nowrap}
-.bubble.mine .reaction-quickbar{left:auto;right:0}
-.reaction-quickbar.hidden{display:none}
-.reaction-quick{width:34px;height:34px;border:0;border-radius:50%;background:transparent;font-size:22px;display:grid;place-items:center;padding:0}
-.reaction-quick:hover,.reaction-quick:focus-visible{background:color-mix(in srgb,var(--primary) 20%,var(--panel));outline:1px solid var(--primary)}
-.reaction-quick.plus{font-size:20px;font-weight:700;background:color-mix(in srgb,var(--primary) 17%,var(--panel));color:var(--text)}
-.reaction-picker{position:absolute;z-index:120;left:0;top:100%;bottom:auto;margin-top:8px;width:min(310px,78vw);padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 36px #0005;display:flex;flex-direction:column;gap:8px}
-.bubble.mine .reaction-picker{left:auto;right:0}
-.reaction-picker.hidden{display:none}
-.reaction-picker-search{width:100%;margin:0;padding:9px 11px;border-radius:11px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:14px;outline:none}
-.reaction-emoji-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:2px;max-height:210px;overflow-y:auto;overscroll-behavior:contain}
-.reaction-emoji{background:transparent;border:0;border-radius:8px;padding:5px 0;font-size:23px;line-height:1.2;display:grid;place-items:center;min-width:0}
-.reaction-emoji:hover,.reaction-emoji:focus-visible{background:color-mix(in srgb,var(--primary) 20%,var(--panel));outline:1px solid var(--primary)}
-.reaction-picker-label{font-size:11px;color:var(--muted);padding:0 2px}
-.bubble{touch-action:manipulation}
-@media(max-width:650px){.reaction-picker{width:min(300px,82vw)}.reaction-emoji-grid{max-height:190px}.reaction-emoji{font-size:22px}}
+/* Message emoji reactions */
+.reaction-tools{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:6px}
+.reaction-picker{display:flex;flex-wrap:wrap;gap:4px;padding:7px;max-width:min(290px,78vw);max-height:190px;overflow-y:auto;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:0 3px 12px #0002}
+.reaction-picker button,.reaction-chip{border:0;cursor:pointer;border-radius:18px;padding:4px 7px;font-size:17px;background:transparent;color:var(--text)}
+.reaction-picker button:active{transform:scale(1.15)}
+.reaction-chip{display:inline-flex;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);font-size:14px}
+.reaction-chip.mine{outline:2px solid var(--primary)}
+.reaction-chip span{font-size:11px;color:var(--muted)}
+.reaction-add{font-size:15px!important;border:1px solid var(--line)!important;background:var(--panel)!important}
+
 </style>
 </head>
 
@@ -505,11 +528,29 @@ button {
 </div>
 
 <div id="messages" class="messages"></div>
-<div id="messageSelectBar" class="message-select-bar hidden">
-  <span id="selectedMessageCount" style="flex:1;color:#edf1ff">0 selected</span>
-  <button id="cancelMessageSelect" type="button">Cancel</button>
-  <button id="deleteForMeBtn" type="button">Delete for me</button>
-  <button id="deleteForEveryoneBtn" class="danger" type="button">Delete for everyone</button>
+<div id="messageSelectBar" class="message-select-bar hidden" aria-label="Selected message actions">
+  <button id="cancelMessageSelect" class="select-action-icon" type="button" aria-label="Cancel selection" title="Cancel">‹</button>
+  <span id="selectedMessageCount" class="selected-message-count">1</span>
+  <div id="selectionQuickReactions" class="selection-quick-reactions" aria-label="Quick reactions">
+    <button type="button" data-selection-emoji="👍" aria-label="React thumbs up">👍</button>
+    <button type="button" data-selection-emoji="❤️" aria-label="React heart">❤️</button>
+    <button type="button" data-selection-emoji="😂" aria-label="React laughing">😂</button>
+    <button type="button" data-selection-emoji="😮" aria-label="React surprised">😮</button>
+    <button type="button" data-selection-emoji="😢" aria-label="React sad">😢</button>
+    <button type="button" data-selection-emoji="🙏" aria-label="React folded hands">🙏</button>
+    <button id="selectionMoreEmoji" type="button" aria-label="More emoji">＋</button>
+  </div>
+  <div id="selectionEmojiPicker" class="selection-emoji-picker hidden" aria-label="Choose reaction emoji"></div>
+  <button id="selectionDeleteBtn" class="select-action-icon" type="button" aria-label="Delete selected messages" title="Delete"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2m-11 0 1 14h12l1-14M10 10v7m4-7v7"/></svg></button>
+</div>
+<div id="deleteMessagesModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="deleteMessagesTitle">
+  <div class="modal-card delete-message-card">
+    <h3 id="deleteMessagesTitle">Delete selected messages?</h3>
+    <p class="delete-message-note">Choose whether to delete them only for you or for everyone.</p>
+    <button id="deleteForEveryoneBtn" class="delete-choice delete-everyone" type="button">Delete for everyone</button>
+    <button id="deleteForMeBtn" class="delete-choice" type="button">Delete for me</button>
+    <button id="cancelDeleteMessagesBtn" class="delete-choice delete-cancel" type="button">Cancel</button>
+  </div>
 </div>
 
 <div id="imagePreviewWrap" class="image-preview-wrap hidden">
@@ -600,7 +641,6 @@ import {
   onSnapshot,
   serverTimestamp,
   updateDoc,
-  deleteField,
   runTransaction
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
@@ -1188,6 +1228,7 @@ function updateMessageSelectionUI() {
     .filter(el => selectedMessageIds.has(el.dataset.messageId));
   const canDeleteEveryone = selectedMessages.length > 0 && selectedMessages.every(el => el.dataset.senderId === currentUser?.uid && el.dataset.deleted !== "true");
   $("deleteForEveryoneBtn").disabled = !canDeleteEveryone;
+  $("selectionDeleteBtn").disabled = selectedMessages.length === 0;
   document.querySelectorAll("#messages [data-message-id]").forEach(el => {
     const selected = selectedMessageIds.has(el.dataset.messageId);
     el.classList.toggle("selected", selected);
@@ -1227,14 +1268,14 @@ function toggleMessageSelection(id) {
 function resetMessageSelection() {
   messageSelectionMode = false;
   selectedMessageIds.clear();
+  if ($("selectionEmojiPicker")) $("selectionEmojiPicker").classList.add("hidden");
+  if ($("deleteMessagesModal")) $("deleteMessagesModal").classList.add("hidden");
   updateMessageSelectionUI();
 }
 $("cancelMessageSelect").addEventListener("click", resetMessageSelection);
 async function deleteSelectedMessages(forEveryone) {
   if (!currentUser || !currentChatId || selectedMessageIds.size === 0) return;
   const ids = [...selectedMessageIds];
-  const verb = forEveryone ? "everyone" : "you";
-  if (!confirm(`Delete ${ids.length} selected message${ids.length === 1 ? "" : "s"} for ${verb}?`)) return;
   const selectedEls = ids.map(id => document.querySelector(`#messages [data-message-id="${CSS.escape(id)}"]`)).filter(Boolean);
   try {
     const jobs = ids.map(async id => {
@@ -1260,8 +1301,55 @@ async function deleteSelectedMessages(forEveryone) {
     alert("Could not delete selected messages: " + friendlyError(err));
   }
 }
-$("deleteForMeBtn").addEventListener("click", () => deleteSelectedMessages(false));
-$("deleteForEveryoneBtn").addEventListener("click", () => deleteSelectedMessages(true));
+$("selectionDeleteBtn").addEventListener("click", () => {
+  if (selectedMessageIds.size) $("deleteMessagesModal").classList.remove("hidden");
+});
+$("cancelDeleteMessagesBtn").addEventListener("click", () => $("deleteMessagesModal").classList.add("hidden"));
+$("deleteMessagesModal").addEventListener("click", event => {
+  if (event.target === $("deleteMessagesModal")) $("deleteMessagesModal").classList.add("hidden");
+});
+$("deleteForMeBtn").addEventListener("click", async () => {
+  $("deleteMessagesModal").classList.add("hidden");
+  await deleteSelectedMessages(false);
+});
+$("deleteForEveryoneBtn").addEventListener("click", async () => {
+  if ($("deleteForEveryoneBtn").disabled) return;
+  $("deleteMessagesModal").classList.add("hidden");
+  await deleteSelectedMessages(true);
+});
+
+const selectionReactionEmojis = ["👍","❤️","😂","😮","😢","🙏","👎","🧡","💛","💚","💙","💜","🖤","🤍","💔","💕","💖","💗","💓","💞","💘","💝","❣️","🤣","😊","😍","🥰","😘","😎","🤩","🥳","😏","🙂","🙃","😉","😌","🤗","🤭","🫡","🫶","🤔","🤨","🥺","😭","😥","😔","😞","😡","🤬","😤","🤯","😴","😇","🤠","👏","🙌","👌","✌️","🤞","🤝","💪","🫰","👋","🎉","🔥","✨","💯","⭐","🌟","💐","🌹","🍀","🎂","🥂","✅","❌","💩","👀","💋","🧿"];
+async function reactToSelectedMessage(emoji) {
+  if (!currentUser || !currentChatId || !selectedMessageIds.size) return;
+  // Reactions apply to the most recently selected message, like WhatsApp.
+  const id = [...selectedMessageIds].at(-1);
+  const bubble = document.querySelector(`#messages [data-message-id="${CSS.escape(id)}"]`);
+  if (!bubble || bubble.dataset.deleted === "true") return;
+  const snap = await getDoc(doc(db, "chats", currentChatId, "messages", id));
+  const reactions = snap.exists() && snap.data().reactions && typeof snap.data().reactions === "object" ? snap.data().reactions : {};
+  await toggleMessageReaction(id, emoji, reactions[emoji] || []);
+  $("selectionEmojiPicker").classList.add("hidden");
+  resetMessageSelection();
+}
+document.querySelectorAll("[data-selection-emoji]").forEach(button => {
+  button.addEventListener("click", () => reactToSelectedMessage(button.dataset.selectionEmoji));
+});
+const selectionEmojiPicker = $("selectionEmojiPicker");
+selectionReactionEmojis.forEach(emoji => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = emoji;
+  button.setAttribute("aria-label", "React " + emoji);
+  button.addEventListener("click", () => reactToSelectedMessage(emoji));
+  selectionEmojiPicker.appendChild(button);
+});
+$("selectionMoreEmoji").addEventListener("click", event => {
+  event.stopPropagation();
+  selectionEmojiPicker.classList.toggle("hidden");
+});
+document.addEventListener("click", event => {
+  if (!event.target.closest("#selectionEmojiPicker,#selectionMoreEmoji")) selectionEmojiPicker.classList.add("hidden");
+});
 
 // Clear chat only for the current user; the other participant keeps their messages.
 $("clearChatBtn").addEventListener("click", async () => {
@@ -1283,6 +1371,23 @@ $("clearChatBtn").addEventListener("click", async () => {
 });
 
 /* Open conversation */
+async function toggleMessageReaction(messageId, emoji, currentUsers) {
+  if (!currentUser || !currentChatId) return;
+  const users = Array.isArray(currentUsers) ? currentUsers : [];
+  const alreadyReacted = users.includes(currentUser.uid);
+  const updatedUsers = alreadyReacted
+    ? users.filter(uid => uid !== currentUser.uid)
+    : [...users, currentUser.uid];
+  try {
+    await updateDoc(doc(db, "chats", currentChatId, "messages", messageId), {
+      ["reactions." + emoji]: updatedUsers
+    });
+  } catch (err) {
+    alert("Could not save reaction. Please check your Firestore Rules.");
+    console.error("Reaction update failed:", err);
+  }
+}
+
 function openChat(friend, isSecret = false) {
   selectedUser = friend;
   activeChatSecret = false;
@@ -1471,84 +1576,60 @@ function openChat(friend, isSecret = false) {
 
         bubble.appendChild(time);
 
-        // Double-tap a message to open the emoji reaction picker.
-        if (message.type !== "deleted" && !messageSelectionMode) {
-          const reactionArea = document.createElement("div");
-          reactionArea.className = "reaction-area";
-          const reactionList = document.createElement("div");
-          reactionList.className = "reaction-list";
-          const reactionMap = message.reactions && typeof message.reactions === "object" ? message.reactions : {};
-          const grouped = new Map();
-          Object.entries(reactionMap).forEach(([uid, emoji]) => {
-            if (typeof emoji !== "string" || !emoji.trim()) return;
-            const key = emoji.trim(); if (!grouped.has(key)) grouped.set(key, []); grouped.get(key).push(uid);
-          });
-          grouped.forEach((uids, emoji) => {
-            const chip = document.createElement("button"); chip.type = "button";
-            chip.className = "reaction-chip" + (uids.includes(currentUser.uid) ? " mine-reaction" : "");
-            chip.title = `${uids.length} reaction${uids.length === 1 ? "" : "s"}`;
-            chip.textContent = emoji + " " + uids.length;
+        // WhatsApp-style emoji reactions, synced through Firestore.
+        if (message.type !== "deleted") {
+          const reactionTools = document.createElement("div");
+          reactionTools.className = "reaction-tools";
+          const reactions = message.reactions && typeof message.reactions === "object" ? message.reactions : {};
+          const reactionEmojis = [
+            "👍","👎","❤️","🧡","💛","💚","💙","💜","🖤","🤍","💔","💕","💖","💗","💓","💞","💘","💝","💟","❣️",
+            "😂","🤣","😊","😍","🥰","😘","😎","🤩","🥳","😏","🙂","🙃","😉","😌","🤗","🤭","🫡","🫶","🤔","🤨",
+            "😮","😯","😲","😳","🥺","😭","😢","😥","😔","😞","😡","🤬","😤","🤯","😴","🤒","🤧","🤮","😇","🤠",
+            "🙏","👏","🙌","👌","✌️","🤞","🤝","💪","🫰","👋","🎉","🔥","✨","💯","💯","⭐","🌟","💐","🌹","🍀","🎂","🥂","🍻","💯","✅","❌","💯","💩","👀","💋","🧿"
+          ];
+          Object.entries(reactions).forEach(([emoji, users]) => {
+            if (!Array.isArray(users) || !users.length) return;
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "reaction-chip" + (users.includes(currentUser.uid) ? " mine" : "");
+            chip.textContent = emoji;
+            const count = document.createElement("span");
+            count.textContent = String(users.length);
+            chip.appendChild(count);
+            chip.title = users.includes(currentUser.uid) ? "Tap to remove your reaction" : "Tap to react";
             chip.addEventListener("click", async event => {
-              event.preventDefault(); event.stopPropagation();
-              try {
-                const field = `reactions.${currentUser.uid}`;
-                if (reactionMap[currentUser.uid] === emoji) await updateDoc(doc(db,"chats",chatId,"messages",item.id), {[field]:deleteField()});
-                else await updateDoc(doc(db,"chats",chatId,"messages",item.id), {[field]:emoji});
-              } catch(err) { alert("Reaction update failed: " + friendlyError(err)); }
+              event.stopPropagation();
+              await toggleMessageReaction(item.id, emoji, users);
             });
-            reactionList.appendChild(chip);
+            reactionTools.appendChild(chip);
           });
-          if (grouped.size) reactionArea.appendChild(reactionList);
-
-          // Quick reaction bar: six common emoji + a plus button for the full emoji list.
-          const quickbar = document.createElement("div"); quickbar.className = "reaction-quickbar hidden";
-          const quickChoices = ["👍","❤️","😂","😮","😢","🙏"];
-          const applyReaction = async emoji => {
-            try {
-              await updateDoc(doc(db,"chats",chatId,"messages",item.id), {[`reactions.${currentUser.uid}`]:emoji});
-              quickbar.classList.add("hidden"); picker.classList.add("hidden");
-            } catch(err) { alert("Reaction update failed: " + friendlyError(err)); }
-          };
-          quickChoices.forEach(emoji=>{
-            const b=document.createElement("button"); b.type="button"; b.className="reaction-quick"; b.textContent=emoji;
-            b.setAttribute("aria-label","React with "+emoji);
-            b.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();applyReaction(emoji);});
-            quickbar.appendChild(b);
-          });
-          const plus=document.createElement("button"); plus.type="button"; plus.className="reaction-quick plus"; plus.textContent="+"; plus.setAttribute("aria-label","More emoji");
-          quickbar.appendChild(plus); reactionArea.appendChild(quickbar);
-
-          const picker = document.createElement("div"); picker.className = "reaction-picker hidden";
-          picker.setAttribute("role","dialog"); picker.setAttribute("aria-label","Choose emoji reaction");
-          const grid = document.createElement("div"); grid.className = "reaction-emoji-grid";
-          const emojiChoices = Array.from("😀 😃 😄 😁 😆 😅 😂 🤣 🥲 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥸 🤩 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤗 🤔 🫣 🤭 🫢 🫡 🤫 🫠 🫥 😶 😐 😑 😬 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 😵‍💫 🤐 🤑 🤠 😈 👿 👹 👺 🤡 💩 👻 💀 ☠️ 👽 👾 🤖 🎃 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👋 🤚 🖐️ ✋ 🖖 🫱 🫲 🫳 🫴 👌 🤌 🤏 ✌️ 🤞 🫰 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 🫶 👐 🤲 🙏 💪 🦾 🖕 🫵 🫂 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 💯 💢 💥 💫 💦 💨 💬 🗯️ 💭 💤 🔥 ⭐ 🌟 ✨ ⚡ ☀️ 🌈 ☁️ ❄️ ☃️ 🌙 🌍 🌎 🌏 🌸 🌹 🌺 🌻 🌼 🍀 🌷 🌱 🌲 🐱 🐶 🐼 🦊 🐻 🐸 🐵 🦄 🐝 🦋 🐢 🐬 🐳 🦖 🍎 🍕 🍔 🍟 🌮 🍩 🍰 🎂 ☕ 🍵 🥤 🍻 🥂 ⚽ 🏀 🏈 ⚾ 🎾 🎮 🎯 🎲 🎸 🎹 🎤 🎧 🚗 ✈️ 🚀 🚲 🏆 🎁 🎉 🎊 🎈 🧸 💎 📱 💻 🔔 🔒 🔑 💡 📌 ✅ ❌ ⚠️ ⛔ 💌 📣 🕊️ 🤝 🧿 🪄 🪩 🥹");
-          const drawEmoji = () => {
-            grid.replaceChildren();
-            emojiChoices.forEach(emoji=>{
-              const b=document.createElement("button"); b.type="button"; b.className="reaction-emoji"; b.textContent=emoji; b.title="React with "+emoji;
-              b.addEventListener("click",async ev=>{ev.preventDefault();ev.stopPropagation();await applyReaction(emoji);}); grid.appendChild(b);
+          const addReaction = document.createElement("button");
+          addReaction.type = "button";
+          addReaction.className = "reaction-chip reaction-add";
+          addReaction.textContent = "＋";
+          addReaction.setAttribute("aria-label", "Add emoji reaction");
+          addReaction.addEventListener("click", event => {
+            event.stopPropagation();
+            const existing = reactionTools.querySelector(".reaction-picker");
+            if (existing) { existing.remove(); return; }
+            const picker = document.createElement("div");
+            picker.className = "reaction-picker";
+            reactionEmojis.forEach(emoji => {
+              const option = document.createElement("button");
+              option.type = "button";
+              option.textContent = emoji;
+              option.setAttribute("aria-label", "React " + emoji);
+              option.addEventListener("click", async ev => {
+                ev.stopPropagation();
+                picker.remove();
+                await toggleMessageReaction(item.id, emoji, reactions[emoji] || []);
+              });
+              picker.appendChild(option);
             });
-          };
-          drawEmoji();
-          picker.appendChild(grid); reactionArea.appendChild(picker);
-          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");});
-          const openPicker=event=>{
-            if(event){event.preventDefault();event.stopPropagation();}
-            document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
-            picker.classList.add("hidden");quickbar.classList.toggle("hidden");
-          };
-          let lastTapAt=0;
-          bubble.addEventListener("dblclick",openPicker);
-          bubble.addEventListener("touchend",event=>{const now=Date.now();if(now-lastTapAt<320)openPicker(event);lastTapAt=now;},{passive:false});
-          quickbar.addEventListener("click",event=>event.stopPropagation());
-          picker.addEventListener("click",event=>event.stopPropagation());
-          document.addEventListener("pointerdown",event=>{
-            if(!reactionArea.contains(event.target)){
-              quickbar.classList.add("hidden");
-              picker.classList.add("hidden");
-            }
+            reactionTools.appendChild(picker);
           });
-          bubble.appendChild(reactionArea);
+          reactionTools.appendChild(addReaction);
+          bubble.appendChild(reactionTools);
         }
 
         $("messages").appendChild(bubble);
