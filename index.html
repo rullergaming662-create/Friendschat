@@ -407,16 +407,6 @@ button {
 .reaction-picker-label{font-size:11px;color:var(--muted);padding:0 2px}
 .bubble{touch-action:manipulation}
 @media(max-width:650px){.reaction-picker{width:min(300px,82vw)}.reaction-emoji-grid{max-height:190px}.reaction-emoji{font-size:22px}}
-
-.chat-head .chat-head-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
-#messageDeleteIcon{display:none;width:42px;height:42px;border:0;border-radius:12px;background:var(--panel);color:var(--text);font-size:20px;place-items:center}
-#messageDeleteIcon.visible{display:grid}
-.delete-options-backdrop{position:fixed;inset:0;z-index:9998;background:#0007;display:grid;place-items:center;padding:20px}
-.delete-options-card{width:min(320px,90vw);background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 18px 45px #0006;display:flex;flex-direction:column;gap:10px}
-.delete-options-card h3{margin:0 0 4px;font-size:18px}
-.delete-options-card button{border:0;border-radius:12px;padding:13px 14px;font-size:15px;font-weight:700;background:color-mix(in srgb,var(--primary) 15%,var(--panel));color:var(--text)}
-.delete-options-card button.danger{background:#b52b45;color:#fff}
-.delete-options-card button.cancel{background:var(--bg)}
 </style>
 </head>
 
@@ -511,10 +501,8 @@ button {
   <button id="backBtn" class="secondary">‹</button>
   <div class="avatar" id="friendAvatar">F</div>
   <div id="friendName" style="flex:1">Friend</div>
-  <div class="chat-head-actions">
-    <button id="messageDeleteIcon" type="button" aria-label="Delete selected messages" title="Delete selected messages">🗑</button>
-    <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
-  </div>
+  <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
+  <button id="messageTrashBtn" class="secondary hidden" type="button" aria-label="Delete selected message" title="Delete selected message">🗑️</button>
 </div>
 
 <div id="messages" class="messages"></div>
@@ -525,14 +513,6 @@ button {
   <button id="deleteForEveryoneBtn" class="danger" type="button">Delete for everyone</button>
 </div>
 
-<div id="deleteOptionsBackdrop" class="delete-options-backdrop hidden" role="dialog" aria-modal="true" aria-label="Delete message options">
-  <div class="delete-options-card">
-    <h3>Delete message</h3>
-    <button id="deleteEveryoneSingle" class="danger" type="button">Delete for everyone</button>
-    <button id="deleteMeSingle" type="button">Delete for me</button>
-    <button id="cancelDeleteSingle" class="cancel" type="button">Cancel</button>
-  </div>
-</div>
 <div id="imagePreviewWrap" class="image-preview-wrap hidden">
   <img id="imagePreview" class="image-preview" alt="Selected photo preview">
   <div id="imagePreviewName" style="flex:1;min-width:0;overflow-wrap:anywhere"></div>
@@ -571,6 +551,15 @@ button {
   <img id="profilePhotoViewerImage" alt="Profile photo" class="hidden">
   <div id="profilePhotoViewerPlaceholder" class="viewer-placeholder hidden"></div>
   <div id="profilePhotoViewerName" class="viewer-name"></div>
+</div>
+
+<div id="messageDeleteModal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <h3>Delete message</h3>
+    <button id="deleteEveryoneSingle" class="primary full" type="button">Delete for everyone</button>
+    <button id="deleteMeSingle" class="secondary full" type="button">Delete for me</button>
+    <button id="cancelDeleteSingle" class="secondary full" type="button">Cancel</button>
+  </div>
 </div>
 
 <div id="profileModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
@@ -1204,8 +1193,8 @@ function cleanupChat() {
 /* WhatsApp-style message selection and deletion */
 function updateMessageSelectionUI() {
   $("messageSelectBar").classList.toggle("hidden", !messageSelectionMode || selectedMessageIds.size === 0);
+  $("messageTrashBtn").classList.toggle("hidden", !messageSelectionMode || selectedMessageIds.size === 0);
   $("selectedMessageCount").textContent = `${selectedMessageIds.size} selected`;
-  $("messageDeleteIcon").classList.toggle("visible", messageSelectionMode && selectedMessageIds.size > 0);
   const selectedMessages = [...document.querySelectorAll("#messages [data-message-id]")]
     .filter(el => selectedMessageIds.has(el.dataset.messageId));
   const canDeleteEveryone = selectedMessages.length > 0 && selectedMessages.every(el => el.dataset.senderId === currentUser?.uid && el.dataset.deleted !== "true");
@@ -1255,6 +1244,8 @@ $("cancelMessageSelect").addEventListener("click", resetMessageSelection);
 async function deleteSelectedMessages(forEveryone) {
   if (!currentUser || !currentChatId || selectedMessageIds.size === 0) return;
   const ids = [...selectedMessageIds];
+  const verb = forEveryone ? "everyone" : "you";
+
   const selectedEls = ids.map(id => document.querySelector(`#messages [data-message-id="${CSS.escape(id)}"]`)).filter(Boolean);
   try {
     const jobs = ids.map(async id => {
@@ -1282,12 +1273,16 @@ async function deleteSelectedMessages(forEveryone) {
 }
 $("deleteForMeBtn").addEventListener("click", () => deleteSelectedMessages(false));
 $("deleteForEveryoneBtn").addEventListener("click", () => deleteSelectedMessages(true));
-const deleteOptionsBackdrop = $("deleteOptionsBackdrop");
-$("messageDeleteIcon").addEventListener("click", () => { if (selectedMessageIds.size) deleteOptionsBackdrop.classList.remove("hidden"); });
-$("deleteEveryoneSingle").addEventListener("click", async () => { deleteOptionsBackdrop.classList.add("hidden"); await deleteSelectedMessages(true); });
-$("deleteMeSingle").addEventListener("click", async () => { deleteOptionsBackdrop.classList.add("hidden"); await deleteSelectedMessages(false); });
-$("cancelDeleteSingle").addEventListener("click", () => deleteOptionsBackdrop.classList.add("hidden"));
-deleteOptionsBackdrop.addEventListener("click", event => { if (event.target === deleteOptionsBackdrop) deleteOptionsBackdrop.classList.add("hidden"); });
+$("messageTrashBtn").addEventListener("click", () => $("messageDeleteModal").classList.remove("hidden"));
+$("deleteEveryoneSingle").addEventListener("click", async () => {
+  $("messageDeleteModal").classList.add("hidden");
+  await deleteSelectedMessages(true);
+});
+$("deleteMeSingle").addEventListener("click", async () => {
+  $("messageDeleteModal").classList.add("hidden");
+  await deleteSelectedMessages(false);
+});
+$("cancelDeleteSingle").addEventListener("click", () => $("messageDeleteModal").classList.add("hidden"));
 
 // Clear chat only for the current user; the other participant keeps their messages.
 $("clearChatBtn").addEventListener("click", async () => {
@@ -1403,8 +1398,12 @@ function openChat(friend, isSecret = false) {
           holdTriggered = false;
           holdTimer = setTimeout(() => {
             holdTriggered = true;
-            startMessageSelection();
-            toggleMessageSelection(item.id);
+            messageSelectionMode = true;
+            selectedMessageIds.clear();
+            selectedMessageIds.add(item.id);
+            addSelectionChecks();
+            updateMessageSelectionUI();
+            $("messageTrashBtn").classList.remove("hidden");
           }, 550);
         });
         ["pointerup", "pointercancel", "pointerleave"].forEach(type => bubble.addEventListener(type, () => {
@@ -1563,19 +1562,17 @@ function openChat(friend, isSecret = false) {
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
           };
-          // Press-and-hold opens the reaction bar and selects the message so the trash icon appears in the header.
           let reactionHoldTimer=null;
+          let reactionHoldTriggered=false;
           bubble.addEventListener("pointerdown",event=>{
             if(event.target.closest("button,a,audio")) return;
-            reactionHoldTimer=setTimeout(()=>{
-              if(!messageSelectionMode)startMessageSelection();
-              if(!selectedMessageIds.has(item.id))toggleMessageSelection(item.id);
-              quickbar.classList.remove("hidden");picker.classList.add("hidden");
-            },550);
+            reactionHoldTriggered=false;
+            reactionHoldTimer=setTimeout(()=>{reactionHoldTriggered=true;openPicker(event);},550);
           });
-          ["pointerup","pointercancel","pointerleave"].forEach(type=>bubble.addEventListener(type,()=>{if(reactionHoldTimer)clearTimeout(reactionHoldTimer);reactionHoldTimer=null;}));
-          let lastTapAt=0;
-
+          ["pointerup","pointercancel","pointerleave"].forEach(type=>bubble.addEventListener(type,()=>{
+            if(reactionHoldTimer)clearTimeout(reactionHoldTimer);
+            reactionHoldTimer=null;
+          }));
           quickbar.addEventListener("click",event=>event.stopPropagation());
           picker.addEventListener("click",event=>event.stopPropagation());
           document.addEventListener("pointerdown",event=>{
