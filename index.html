@@ -1592,10 +1592,26 @@ $("messageForm").addEventListener("submit", async e => {
   }
 });
 
-    <div class="sub">Private chats with your friends</div>
-  </div>
-  <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
 
-</header>
+// Light/Dark theme toggle. Keep the selected theme across reloads.
+const themeToggle = $("themeToggle");
+function applyTheme(theme) {
+  const light = theme === "light";
+  document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
+  if (themeToggle) {
+    themeToggle.textContent = light ? "🌙 Dark" : "☀️ Light";
+    themeToggle.setAttribute("aria-label", light ? "Switch to dark mode" : "Switch to light mode");
+  }
+}
+let savedTheme = "dark";
+try { savedTheme = localStorage.getItem("chatzapp-theme") || "dark"; } catch (_) {}
+applyTheme(savedTheme);
+if (themeToggle) themeToggle.addEventListener("click", () => {
+  const nextTheme = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+  applyTheme(nextTheme);
+  try { localStorage.setItem("chatzapp-theme", nextTheme); } catch (_) {}
+});
 
-<div id="main">
+</script>
+</body>
+</html>
