@@ -319,8 +319,8 @@ button {
 .message-select-bar button.danger {background:#a8324a}
 .message-select-bar button:disabled {opacity:.45;cursor:not-allowed}
 .bubble.selectable {cursor:pointer;position:relative;user-select:none;-webkit-user-select:none;touch-action:pan-y}
-.bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
-.selection-check {display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#6577ff;color:white;font-size:13px;font-weight:bold;margin-right:7px;vertical-align:middle}
+.bubble.selected {outline:3px solid #8b9cff;outline-offset:3px;filter:brightness(1.08)}
+.selection-check {display:none!important}
 .empty {
   text-align:center;
   padding:25px;
@@ -1196,26 +1196,14 @@ function updateMessageSelectionUI() {
   document.querySelectorAll("#messages [data-message-id]").forEach(el => {
     const selected = selectedMessageIds.has(el.dataset.messageId);
     el.classList.toggle("selected", selected);
-    const check = el.querySelector(".selection-check");
-    if (check) { check.textContent = selected ? "✓" : ""; check.classList.toggle("checked", selected); check.setAttribute("aria-pressed", String(selected)); check.setAttribute("aria-label", selected ? "Deselect message" : "Select message"); }
+    // Do not inject check/tick icons into message bubbles; selection is shown by outline.
+    el.querySelectorAll(".selection-check").forEach(check => check.remove());
   });
 }
 function addSelectionChecks() {
+  // Selection indicators are intentionally not placed inside bubbles.
   document.querySelectorAll("#messages [data-message-id]").forEach(bubble => {
-    if (bubble.querySelector(".selection-check")) return;
     bubble.classList.add("selectable");
-    const marker = document.createElement("button");
-    marker.type = "button";
-    marker.className = "selection-check";
-    marker.setAttribute("aria-label", "Select message");
-    marker.setAttribute("aria-pressed", "false");
-    marker.textContent = "";
-    marker.addEventListener("click", event => {
-      event.preventDefault();
-      event.stopPropagation();
-      toggleMessageSelection(bubble.dataset.messageId);
-    });
-    bubble.insertBefore(marker, bubble.firstChild);
   });
 }
 function startMessageSelection() {
@@ -1246,9 +1234,12 @@ $("cancelMessageDelete").addEventListener("click", () => {
 document.addEventListener("click", event => {
   const menu = $("messageDeleteMenu");
   const deleteBtn = $("messageDeleteMenuBtn");
-  if (!menu.contains(event.target) && event.target !== deleteBtn) {
-    menu.classList.add("hidden");
-    if (messageSelectionMode && !event.target.closest("#messages [data-message-id]")) resetMessageSelection();
+  const clickedInMessage = event.target.closest("#messages [data-message-id]");
+  const clickedDeleteControl = event.target === deleteBtn || deleteBtn.contains(event.target);
+  if (!menu.contains(event.target) && !clickedDeleteControl) menu.classList.add("hidden");
+  // Tap anywhere outside a message and the delete menu clears selection.
+  if (messageSelectionMode && !clickedInMessage && !menu.contains(event.target) && !clickedDeleteControl) {
+    resetMessageSelection();
   }
 });
 async function deleteSelectedMessages(forEveryone) {
@@ -1382,41 +1373,32 @@ function openChat(friend, isSecret = false) {
         bubble.dataset.messageId = item.id;
         bubble.dataset.senderId = message.senderId || "";
         bubble.dataset.deleted = String(message.type === "deleted");
-        if (messageSelectionMode) {
-          bubble.classList.add("selectable");
-          const marker = document.createElement("button");
-          marker.type = "button";
-          marker.className = "selection-check";
-          marker.setAttribute("aria-label", selectedMessageIds.has(item.id) ? "Deselect message" : "Select message");
-          marker.setAttribute("aria-pressed", String(selectedMessageIds.has(item.id)));
-          marker.textContent = selectedMessageIds.has(item.id) ? "✓" : "";
-          marker.addEventListener("click", event => {
-            event.preventDefault();
-            event.stopPropagation();
-            toggleMessageSelection(item.id);
-          });
-          bubble.insertBefore(marker, bubble.firstChild);
-        }
-        // WhatsApp-style: press and hold a message to reveal selection ticks.
+        if (messageSelectionMode) bubble.classList.add("selectable");
+        // Long-press selects the message. Selection is indicated by an outline,
+        // not a check icon embedded in the bubble.
         let holdTimer = null;
         let holdTriggered = false;
         bubble.addEventListener("pointerdown", event => {
-          if (event.target.closest("a,button,audio")) return;
+          if (event.target.closest("a,button,audio,input")) return;
           holdTriggered = false;
           holdTimer = setTimeout(() => {
             holdTriggered = true;
             startMessageSelection();
-            toggleMessageSelection(item.id);
+            selectedMessageIds.clear();
+            selectedMessageIds.add(item.id);
+            updateMessageSelectionUI();
           }, 550);
         });
-        ["pointerup", "pointercancel", "pointerleave"].forEach(type => bubble.addEventListener(type, () => {
+        const cancelHold = () => {
           if (holdTimer) clearTimeout(holdTimer);
           holdTimer = null;
-        }));
+        };
+        ["pointerup", "pointercancel", "pointerleave"].forEach(type => bubble.addEventListener(type, cancelHold));
         bubble.addEventListener("click", event => {
-          if (!messageSelectionMode || event.target.closest(".selection-check")) return;
-          if (holdTriggered) { event.preventDefault(); event.stopPropagation(); return; }
-          toggleMessageSelection(item.id);
+          if (holdTriggered) { event.preventDefault(); event.stopPropagation(); holdTriggered = false; return; }
+          if (messageSelectionMode && !event.target.closest("button,a,audio")) {
+            event.preventDefault(); event.stopPropagation(); toggleMessageSelection(item.id);
+          }
         });
 
         if (message.type === "deleted") {
@@ -1565,26 +1547,11 @@ function openChat(friend, isSecret = false) {
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
           };
-          let holdTimer=null;
-          let holdTriggered=false;
-          const beginHold=event=>{
-            if(event.target.closest("button")) return;
-            holdTriggered=false;
-            holdTimer=setTimeout(()=>{
-              holdTriggered=true;
-              startMessageSelection();
-              toggleMessageSelection(item.id);
-              openPicker(event);
-            },520);
-          };
-          const cancelHold=()=>{if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}};
-          bubble.addEventListener("pointerdown",beginHold);
-          bubble.addEventListener("pointerup",cancelHold);
-          bubble.addEventListener("pointerleave",cancelHold);
-          bubble.addEventListener("pointercancel",cancelHold);
-          bubble.addEventListener("click",event=>{
-            if(holdTriggered){event.preventDefault();event.stopPropagation();holdTriggered=false;return;}
-            if(messageSelectionMode){event.preventDefault();event.stopPropagation();toggleMessageSelection(item.id);}
+          // Keep emoji reactions available by double-click; long-press is reserved
+          // for message selection and the delete menu.
+          bubble.addEventListener("dblclick", event => {
+            if (messageSelectionMode || event.target.closest("button,a,audio")) return;
+            openPicker(event);
           });
           quickbar.addEventListener("click",event=>event.stopPropagation());
           picker.addEventListener("click",event=>event.stopPropagation());
