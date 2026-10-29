@@ -310,8 +310,6 @@ button {
 .message-select-bar button {background:#39486a;color:#edf1ff;padding:9px 12px;border-radius:9px}
 .message-select-bar button.danger {background:#a8324a}
 .message-select-bar button:disabled {opacity:.45;cursor:not-allowed}
-.select-reactions{display:flex;align-items:center;gap:3px;overflow-x:auto;max-width:70vw}.select-reactions button{font-size:22px;line-height:1;padding:7px;background:transparent;border-radius:50%;min-width:36px}.select-reactions #selectMoreEmoji{font-size:24px;background:#68717d;color:white}
-.delete-choice-modal{position:fixed;inset:0;z-index:9999;background:#0008;display:grid;place-items:center;padding:20px}.delete-choice-modal.hidden{display:none!important}.delete-choice-card{width:min(100%,360px);background:var(--panel);color:var(--text);border-radius:20px;padding:20px;box-shadow:0 20px 60px #0005;display:grid;gap:12px}.delete-choice-card>div{font-size:18px;margin-bottom:4px}.delete-choice-card button{padding:13px;border-radius:12px;background:var(--input);color:var(--text);text-align:left}.delete-choice-card button.danger{color:#fff;background:#b52f49}
 .bubble.selectable {cursor:default;position:relative}
 .bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
 .selection-check {display:inline-grid;place-items:center;flex:0 0 22px;width:22px;height:22px;border-radius:6px;border:2px solid #9aa9d0;background:#111827;color:white;font-size:14px;font-weight:bold;margin:0 8px 0 0;padding:0;vertical-align:middle;cursor:pointer}
@@ -320,8 +318,6 @@ button {
 .message-select-bar button {background:#39486a;color:#edf1ff;padding:9px 12px;border-radius:9px}
 .message-select-bar button.danger {background:#a8324a}
 .message-select-bar button:disabled {opacity:.45;cursor:not-allowed}
-.select-reactions{display:flex;align-items:center;gap:3px;overflow-x:auto;max-width:70vw}.select-reactions button{font-size:22px;line-height:1;padding:7px;background:transparent;border-radius:50%;min-width:36px}.select-reactions #selectMoreEmoji{font-size:24px;background:#68717d;color:white}
-.delete-choice-modal{position:fixed;inset:0;z-index:9999;background:#0008;display:grid;place-items:center;padding:20px}.delete-choice-modal.hidden{display:none!important}.delete-choice-card{width:min(100%,360px);background:var(--panel);color:var(--text);border-radius:20px;padding:20px;box-shadow:0 20px 60px #0005;display:grid;gap:12px}.delete-choice-card>div{font-size:18px;margin-bottom:4px}.delete-choice-card button{padding:13px;border-radius:12px;background:var(--input);color:var(--text);text-align:left}.delete-choice-card button.danger{color:#fff;background:#b52f49}
 .bubble.selectable {cursor:pointer;position:relative;user-select:none;-webkit-user-select:none;touch-action:pan-y}
 .bubble.selected {outline:2px solid #8b9cff;outline-offset:2px}
 .selection-check {display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#6577ff;color:white;font-size:13px;font-weight:bold;margin-right:7px;vertical-align:middle}
@@ -331,12 +327,6 @@ button {
   color:var(--muted);
 }
 
-/* Selection reactions float beside the selected message; delete stays in chat header */
-.message-select-bar{position:fixed;z-index:1500;display:flex;align-items:center;gap:5px;flex-wrap:nowrap;width:max-content;max-width:calc(100vw - 16px);padding:7px 9px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 8px 26px #0004;}
-.message-select-bar.hidden{display:none!important}
-.message-select-bar #cancelMessageSelect,.message-select-bar #selectedMessageCount{display:none!important}
-.message-select-bar .select-reactions{max-width:calc(100vw - 32px);}
-#deleteSelectedBtn{flex:0 0 auto;min-width:40px;font-size:20px;}
 .hidden { display:none!important; }
 
 
@@ -511,24 +501,15 @@ button {
   <button id="backBtn" class="secondary">‹</button>
   <div class="avatar" id="friendAvatar">F</div>
   <div id="friendName" style="flex:1">Friend</div>
-  <button id="deleteSelectedBtn" class="secondary hidden" type="button" aria-label="Delete selected messages">🗑</button>
   <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
 </div>
 
 <div id="messages" class="messages"></div>
 <div id="messageSelectBar" class="message-select-bar hidden">
-  <button id="cancelMessageSelect" type="button" aria-label="Cancel selection">‹</button>
-  <span id="selectedMessageCount" style="color:#edf1ff;white-space:nowrap">1 selected</span>
-  <div class="select-reactions" aria-label="Quick reactions">
-    <button type="button" data-select-reaction="👍">👍</button><button type="button" data-select-reaction="❤️">❤️</button><button type="button" data-select-reaction="😂">😂</button><button type="button" data-select-reaction="😮">😮</button><button type="button" data-select-reaction="😢">😢</button><button type="button" data-select-reaction="🙏">🙏</button>
-    <button id="selectMoreEmoji" type="button" aria-label="More emoji">＋</button>
-  </div>
-</div>
-<div id="deleteChoiceModal" class="delete-choice-modal hidden" role="dialog" aria-modal="true">
-  <div class="delete-choice-card"><div id="deleteChoiceTitle">Delete message?</div>
-  <button id="deleteForEveryoneBtn" class="danger" type="button">Delete for everyone</button>
+  <span id="selectedMessageCount" style="flex:1;color:#edf1ff">0 selected</span>
+  <button id="cancelMessageSelect" type="button">Cancel</button>
   <button id="deleteForMeBtn" type="button">Delete for me</button>
-  <button id="cancelDeleteChoice" type="button">Cancel</button></div>
+  <button id="deleteForEveryoneBtn" class="danger" type="button">Delete for everyone</button>
 </div>
 
 <div id="imagePreviewWrap" class="image-preview-wrap hidden">
@@ -1201,10 +1182,7 @@ function cleanupChat() {
 
 /* WhatsApp-style message selection and deletion */
 function updateMessageSelectionUI() {
-  const active = messageSelectionMode && selectedMessageIds.size > 0;
-  const bar = $("messageSelectBar");
-  bar.classList.toggle("hidden", !active);
-  $("deleteSelectedBtn").classList.toggle("hidden", !active);
+  $("messageSelectBar").classList.toggle("hidden", !messageSelectionMode || selectedMessageIds.size === 0);
   $("selectedMessageCount").textContent = `${selectedMessageIds.size} selected`;
   const selectedMessages = [...document.querySelectorAll("#messages [data-message-id]")]
     .filter(el => selectedMessageIds.has(el.dataset.messageId));
@@ -1214,19 +1192,8 @@ function updateMessageSelectionUI() {
     const selected = selectedMessageIds.has(el.dataset.messageId);
     el.classList.toggle("selected", selected);
     const check = el.querySelector(".selection-check");
-    if (check) check.remove();
+    if (check) { check.textContent = selected ? "✓" : ""; check.classList.toggle("checked", selected); check.setAttribute("aria-pressed", String(selected)); check.setAttribute("aria-label", selected ? "Deselect message" : "Select message"); }
   });
-  if (active && selectedMessages.length) {
-    const target = selectedMessages[selectedMessages.length - 1];
-    const r = target.getBoundingClientRect();
-    const barRect = bar.getBoundingClientRect();
-    const w = Math.min(barRect.width || 360, window.innerWidth - 16);
-    const left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 8));
-    let top = r.top - (barRect.height || 52) - 10;
-    if (top < 8) top = Math.min(window.innerHeight - (barRect.height || 52) - 8, r.bottom + 10);
-    bar.style.left = `${left}px`;
-    bar.style.top = `${top}px`;
-  }
 }
 function addSelectionChecks() {
   document.querySelectorAll("#messages [data-message-id]").forEach(bubble => {
@@ -1249,6 +1216,7 @@ function addSelectionChecks() {
 function startMessageSelection() {
   if (messageSelectionMode) return;
   messageSelectionMode = true;
+  addSelectionChecks();
   updateMessageSelectionUI();
 }
 function toggleMessageSelection(id) {
@@ -1265,6 +1233,8 @@ $("cancelMessageSelect").addEventListener("click", resetMessageSelection);
 async function deleteSelectedMessages(forEveryone) {
   if (!currentUser || !currentChatId || selectedMessageIds.size === 0) return;
   const ids = [...selectedMessageIds];
+  const verb = forEveryone ? "everyone" : "you";
+  if (!confirm(`Delete ${ids.length} selected message${ids.length === 1 ? "" : "s"} for ${verb}?`)) return;
   const selectedEls = ids.map(id => document.querySelector(`#messages [data-message-id="${CSS.escape(id)}"]`)).filter(Boolean);
   try {
     const jobs = ids.map(async id => {
@@ -1290,19 +1260,8 @@ async function deleteSelectedMessages(forEveryone) {
     alert("Could not delete selected messages: " + friendlyError(err));
   }
 }
-const deleteChoiceModal = $("deleteChoiceModal");
-window.addEventListener("resize",()=>{if(messageSelectionMode)updateMessageSelectionUI();});
-$("messages").addEventListener("scroll",()=>{if(messageSelectionMode)updateMessageSelectionUI();},{passive:true});
-$("deleteSelectedBtn").addEventListener("click",()=>{ $("deleteChoiceTitle").textContent=`Delete ${selectedMessageIds.size} selected message${selectedMessageIds.size===1?"":"s"}?`; deleteChoiceModal.classList.remove("hidden"); });
-$("cancelDeleteChoice").addEventListener("click",()=>deleteChoiceModal.classList.add("hidden"));
-$("deleteForMeBtn").addEventListener("click",()=>{deleteChoiceModal.classList.add("hidden");deleteSelectedMessages(false);});
-$("deleteForEveryoneBtn").addEventListener("click",()=>{deleteChoiceModal.classList.add("hidden");deleteSelectedMessages(true);});
-$("selectMoreEmoji").addEventListener("click",()=>{
-  const emojis=Array.from("😀 😃 😄 😁 😆 😅 😂 🤣 🥲 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥸 🤩 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤗 🤔 🫣 🤭 🫢 🫡 🤫 🫠 🫥 😶 😐 😑 😬 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 😵‍💫 🤐 🤑 🤠 😈 👿 👹 👺 🤡 💩 👻 💀 ☠️ 👽 👾 🤖 🎃 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👋 👍 👎 👏 🙌 🫶 🙏 💪 🫂 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 💯 🔥 ⭐ 🌟 ✨ 🌈 🌸 🌹 🌺 🌻 🍀 🐱 🐶 🦄 🍎 🍕 🍔 🎮 🎉 🎁 🥹");
-  const picker=document.createElement("div");picker.className="delete-choice-modal";picker.innerHTML='<div class="delete-choice-card" style="max-height:70vh;overflow:auto;grid-template-columns:repeat(6,1fr);gap:6px"></div>';
-  const grid=picker.firstElementChild;emojis.forEach(e=>{const b=document.createElement("button");b.textContent=e;b.style.textAlign="center";b.addEventListener("click",async()=>{picker.remove();const ids=[...selectedMessageIds];try{await Promise.all(ids.map(id=>updateDoc(doc(db,"chats",currentChatId,"messages",id),{[`reactions.${currentUser.uid}`]:e})));resetMessageSelection();}catch(err){alert("Reaction update failed: "+friendlyError(err));}});grid.appendChild(b);});picker.addEventListener("click",e=>{if(e.target===picker)picker.remove();});document.body.appendChild(picker);
-});
-document.querySelectorAll("[data-select-reaction]").forEach(btn=>btn.addEventListener("click",async()=>{const emoji=btn.dataset.selectReaction;try{await Promise.all([...selectedMessageIds].map(id=>updateDoc(doc(db,"chats",currentChatId,"messages",id),{[`reactions.${currentUser.uid}`]:emoji})));resetMessageSelection();}catch(err){alert("Reaction update failed: "+friendlyError(err));}}));
+$("deleteForMeBtn").addEventListener("click", () => deleteSelectedMessages(false));
+$("deleteForEveryoneBtn").addEventListener("click", () => deleteSelectedMessages(true));
 
 // Clear chat only for the current user; the other participant keeps their messages.
 $("clearChatBtn").addEventListener("click", async () => {
@@ -1395,7 +1354,21 @@ function openChat(friend, isSecret = false) {
         bubble.dataset.messageId = item.id;
         bubble.dataset.senderId = message.senderId || "";
         bubble.dataset.deleted = String(message.type === "deleted");
-        if (messageSelectionMode) bubble.classList.add("selectable");
+        if (messageSelectionMode) {
+          bubble.classList.add("selectable");
+          const marker = document.createElement("button");
+          marker.type = "button";
+          marker.className = "selection-check";
+          marker.setAttribute("aria-label", selectedMessageIds.has(item.id) ? "Deselect message" : "Select message");
+          marker.setAttribute("aria-pressed", String(selectedMessageIds.has(item.id)));
+          marker.textContent = selectedMessageIds.has(item.id) ? "✓" : "";
+          marker.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleMessageSelection(item.id);
+          });
+          bubble.insertBefore(marker, bubble.firstChild);
+        }
         // WhatsApp-style: press and hold a message to reveal selection ticks.
         let holdTimer = null;
         let holdTriggered = false;
