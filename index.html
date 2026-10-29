@@ -416,6 +416,21 @@ button {
 .reaction-picker-label{font-size:11px;color:var(--muted);padding:0 2px}
 .bubble{touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 @media(max-width:650px){.reaction-picker{width:min(300px,82vw)}.reaction-emoji-grid{max-height:190px}.reaction-emoji{font-size:22px}}
+
+
+/* Reaction details bottom sheet */
+.reaction-details-overlay{position:fixed;inset:0;z-index:20000;background:#0009;display:flex;align-items:flex-end;justify-content:center}
+.reaction-details-overlay.hidden{display:none!important}
+.reaction-details-sheet{width:min(100%,700px);max-height:72vh;overflow:auto;background:var(--panel);color:var(--text);border-radius:22px 22px 0 0;padding:18px 18px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -12px 36px #0005}
+.reaction-details-handle{width:42px;height:5px;border-radius:999px;background:var(--muted);opacity:.55;margin:-7px auto 18px}
+.reaction-details-title{font-size:18px;font-weight:700;margin:0 0 16px}
+.reaction-details-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.reaction-details-tab{background:#293149;color:var(--text);border-radius:999px;padding:8px 13px;font-size:15px}
+.reaction-details-tab.active{background:color-mix(in srgb,var(--primary) 28%,var(--panel));outline:1px solid var(--primary)}
+.reaction-details-user{display:flex;align-items:center;gap:12px;padding:10px 2px}
+.reaction-details-user .avatar{width:42px;height:42px;flex:0 0 42px}
+.reaction-details-user-name{flex:1;font-weight:600}
+.reaction-details-user-emoji{font-size:23px}
 </style>
 </head>
 
@@ -573,6 +588,15 @@ button {
     <div id="profileError" class="error"></div>
     <button id="saveProfileBtn" class="primary full" type="button">Save changes</button>
     <button id="settingsLogoutBtn" class="secondary full" type="button">Sign out</button>
+  </div>
+</div>
+
+<div id="reactionDetailsOverlay" class="reaction-details-overlay hidden" role="dialog" aria-modal="true" aria-label="Message reactions">
+  <div class="reaction-details-sheet">
+    <div class="reaction-details-handle"></div>
+    <h3 id="reactionDetailsTitle" class="reaction-details-title">Reactions</h3>
+    <div id="reactionDetailsTabs" class="reaction-details-tabs"></div>
+    <div id="reactionDetailsUsers"></div>
   </div>
 </div>
 
@@ -1482,7 +1506,66 @@ function openChat(friend, isSecret = false) {
 
         bubble.appendChild(time);
 
-        // Double-tap a message to open the emoji reaction picker.
+
+
+// Show the people who reacted to a message, grouped by emoji.
+function showReactionDetails(reactionMap, selectedEmoji) {
+  const overlay = $("reactionDetailsOverlay");
+  const tabs = $("reactionDetailsTabs");
+  const usersBox = $("reactionDetailsUsers");
+  const entries = Object.entries(reactionMap || {}).filter(([uid, emoji]) => typeof emoji === "string" && emoji.trim());
+  const groups = new Map();
+  entries.forEach(([uid, emoji]) => {
+    const key = emoji.trim();
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(uid);
+  });
+  let activeEmoji = groups.has(selectedEmoji) ? selectedEmoji : (groups.keys().next().value || "");
+  const render = () => {
+    tabs.replaceChildren();
+    usersBox.replaceChildren();
+    $("reactionDetailsTitle").textContent = `${entries.length} reaction${entries.length === 1 ? "" : "s"}`;
+    groups.forEach((uids, emoji) => {
+      const tab = document.createElement("button");
+      tab.type = "button";
+      tab.className = "reaction-details-tab" + (emoji === activeEmoji ? " active" : "");
+      tab.textContent = `${emoji} ${uids.length}`;
+      tab.addEventListener("click", () => { activeEmoji = emoji; render(); });
+      tabs.appendChild(tab);
+    });
+    (groups.get(activeEmoji) || []).forEach(uid => {
+      const user = allUsers.find(u => u.uid === uid) || (currentUser && currentUser.uid === uid
+        ? {uid, name: $("myName").textContent || currentUser.displayName || "You", photoData: ""}
+        : {uid, name: "User", photoData: ""});
+      const row = document.createElement("div");
+      row.className = "reaction-details-user";
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      renderAvatar(avatar, user.name || "User", user.photoData || "");
+      const name = document.createElement("div");
+      name.className = "reaction-details-user-name";
+      name.textContent = uid === currentUser?.uid ? "You" : (user.name || "User");
+      const reaction = document.createElement("div");
+      reaction.className = "reaction-details-user-emoji";
+      reaction.textContent = activeEmoji;
+      row.append(avatar, name, reaction);
+      usersBox.appendChild(row);
+    });
+    if (!groups.size) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No reactions yet.";
+      usersBox.appendChild(empty);
+    }
+  };
+  render();
+  overlay.classList.remove("hidden");
+}
+function closeReactionDetails() { $("reactionDetailsOverlay").classList.add("hidden"); }
+$("reactionDetailsOverlay").addEventListener("click", event => {
+  if (event.target === $("reactionDetailsOverlay")) closeReactionDetails();
+});
+\n        // Double-tap a message to open the emoji reaction picker.
         if (message.type !== "deleted" && !messageSelectionMode) {
           const reactionArea = document.createElement("div");
           reactionArea.className = "reaction-area";
@@ -1499,13 +1582,9 @@ function openChat(friend, isSecret = false) {
             chip.className = "reaction-chip" + (uids.includes(currentUser.uid) ? " mine-reaction" : "");
             chip.title = `${uids.length} reaction${uids.length === 1 ? "" : "s"}`;
             chip.textContent = emoji + " " + uids.length;
-            chip.addEventListener("click", async event => {
+            chip.addEventListener("click", event => {
               event.preventDefault(); event.stopPropagation();
-              try {
-                const field = `reactions.${currentUser.uid}`;
-                if (reactionMap[currentUser.uid] === emoji) await updateDoc(doc(db,"chats",chatId,"messages",item.id), {[field]:deleteField()});
-                else await updateDoc(doc(db,"chats",chatId,"messages",item.id), {[field]:emoji});
-              } catch(err) { alert("Reaction update failed: " + friendlyError(err)); }
+              showReactionDetails(reactionMap, emoji);
             });
             reactionList.appendChild(chip);
           });
