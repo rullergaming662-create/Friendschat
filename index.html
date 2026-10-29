@@ -1565,7 +1565,8 @@ function closeReactionDetails() { $("reactionDetailsOverlay").classList.add("hid
 $("reactionDetailsOverlay").addEventListener("click", event => {
   if (event.target === $("reactionDetailsOverlay")) closeReactionDetails();
 });
-\n        // Double-tap a message to open the emoji reaction picker.
+
+        // Double-tap a message to open the emoji reaction picker.
         if (message.type !== "deleted" && !messageSelectionMode) {
           const reactionArea = document.createElement("div");
           reactionArea.className = "reaction-area";
