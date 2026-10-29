@@ -1520,23 +1520,18 @@ function openChat(friend, isSecret = false) {
 
           const picker = document.createElement("div"); picker.className = "reaction-picker hidden";
           picker.setAttribute("role","dialog"); picker.setAttribute("aria-label","Choose emoji reaction");
-          const search = document.createElement("input"); search.className = "reaction-picker-search";
-          search.type = "search"; search.placeholder = "Search emoji…"; search.autocomplete = "off";
-          search.setAttribute("aria-label","Search emoji");
-          const label = document.createElement("div"); label.className = "reaction-picker-label"; label.textContent = "Choose any emoji";
           const grid = document.createElement("div"); grid.className = "reaction-emoji-grid";
           const emojiChoices = Array.from("😀 😃 😄 😁 😆 😅 😂 🤣 🥲 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥸 🤩 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤗 🤔 🫣 🤭 🫢 🫡 🤫 🫠 🫥 😶 😐 😑 😬 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 😵‍💫 🤐 🤑 🤠 😈 👿 👹 👺 🤡 💩 👻 💀 ☠️ 👽 👾 🤖 🎃 😺 😸 😹 😻 😼 😽 🙀 😿 😾 👋 🤚 🖐️ ✋ 🖖 🫱 🫲 🫳 🫴 👌 🤌 🤏 ✌️ 🤞 🫰 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 🫶 👐 🤲 🙏 💪 🦾 🖕 🫵 🫂 ❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 💯 💢 💥 💫 💦 💨 💬 🗯️ 💭 💤 🔥 ⭐ 🌟 ✨ ⚡ ☀️ 🌈 ☁️ ❄️ ☃️ 🌙 🌍 🌎 🌏 🌸 🌹 🌺 🌻 🌼 🍀 🌷 🌱 🌲 🐱 🐶 🐼 🦊 🐻 🐸 🐵 🦄 🐝 🦋 🐢 🐬 🐳 🦖 🍎 🍕 🍔 🍟 🌮 🍩 🍰 🎂 ☕ 🍵 🥤 🍻 🥂 ⚽ 🏀 🏈 ⚾ 🎾 🎮 🎯 🎲 🎸 🎹 🎤 🎧 🚗 ✈️ 🚀 🚲 🏆 🎁 🎉 🎊 🎈 🧸 💎 📱 💻 🔔 🔒 🔑 💡 📌 ✅ ❌ ⚠️ ⛔ 💌 📣 🕊️ 🤝 🧿 🪄 🪩 🥹");
-          const drawEmoji = query => {
-            grid.replaceChildren(); const q=(query||"").trim().toLowerCase();
-            emojiChoices.filter(e=>!q||e.includes(q)).forEach(emoji=>{
+          const drawEmoji = () => {
+            grid.replaceChildren();
+            emojiChoices.forEach(emoji=>{
               const b=document.createElement("button"); b.type="button"; b.className="reaction-emoji"; b.textContent=emoji; b.title="React with "+emoji;
               b.addEventListener("click",async ev=>{ev.preventDefault();ev.stopPropagation();await applyReaction(emoji);}); grid.appendChild(b);
             });
-            if(!grid.children.length){const empty=document.createElement("div");empty.className="reaction-picker-label";empty.textContent="No emoji found";grid.appendChild(empty);}
           };
-          drawEmoji(""); search.addEventListener("input",()=>drawEmoji(search.value));
-          picker.append(search,label,grid); reactionArea.appendChild(picker);
-          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");if(!picker.classList.contains("hidden")){search.value="";drawEmoji("");search.focus();}});
+          drawEmoji();
+          picker.appendChild(grid); reactionArea.appendChild(picker);
+          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");});
           const openPicker=event=>{
             if(event){event.preventDefault();event.stopPropagation();}
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
@@ -1547,6 +1542,12 @@ function openChat(friend, isSecret = false) {
           bubble.addEventListener("touchend",event=>{const now=Date.now();if(now-lastTapAt<320)openPicker(event);lastTapAt=now;},{passive:false});
           quickbar.addEventListener("click",event=>event.stopPropagation());
           picker.addEventListener("click",event=>event.stopPropagation());
+          document.addEventListener("pointerdown",event=>{
+            if(!reactionArea.contains(event.target)){
+              quickbar.classList.add("hidden");
+              picker.classList.add("hidden");
+            }
+          });
           bubble.appendChild(reactionArea);
         }
 
