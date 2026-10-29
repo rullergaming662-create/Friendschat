@@ -15,6 +15,50 @@
   --line:#293149;
 }
 
+/* Light theme palette; dark remains the default. */
+:root[data-theme="light"] {
+  --bg:#f3f5fb;
+  --panel:#ffffff;
+  --primary:#5968e8;
+  --text:#182033;
+  --muted:#68738a;
+  --line:#dce2ef;
+}
+:root[data-theme="light"] body { background:var(--bg); color:var(--text); }
+:root[data-theme="light"] input {
+  background:#f8faff;
+  color:#182033;
+  border-color:#dce2ef;
+}
+:root[data-theme="light"] .secondary,
+:root[data-theme="light"] .auth-tabs,
+:root[data-theme="light"] .attach-menu,
+:root[data-theme="light"] .message-select-bar { background:#e9edf8; color:#182033; }
+:root[data-theme="light"] .auth-tab { color:#68738a; }
+:root[data-theme="light"] .auth-tab.active { color:#fff; }
+:root[data-theme="light"] .bubble { background:#e8edf8; color:#182033; }
+:root[data-theme="light"] .bubble.mine { background:#dce3ff; }
+:root[data-theme="light"] .person { color:#182033; }
+:root[data-theme="light"] .person.active,
+:root[data-theme="light"] .recent-person:hover { background:#e9edf8; }
+:root[data-theme="light"] .chat-head,
+:root[data-theme="light"] .composer,
+:root[data-theme="light"] .image-preview-wrap { background:#fff; }
+:root[data-theme="light"] .attach-option { color:#182033; }
+:root[data-theme="light"] .attach-option:hover,
+:root[data-theme="light"] .attach-option:focus { background:#dce3f5; }
+:root[data-theme="light"] .photo-viewer { background:#f3f5fb; }
+:root[data-theme="light"] .photo-viewer-actions a,
+:root[data-theme="light"] .photo-viewer-actions button { background:#dce3f5; color:#182033; }
+:root[data-theme="light"] .modal-card { background:#fff; color:#182033; }
+:root[data-theme="light"] .modal-close { background:#e9edf8; color:#182033; }
+:root[data-theme="light"] .message-select-bar button { background:#d2daf0; color:#182033; }
+:root[data-theme="light"] .message-select-bar button.danger { background:#a8324a; color:#fff; }
+:root[data-theme="light"] .selection-check { background:#fff; color:#5968e8; border-color:#5968e8; }
+:root[data-theme="light"] .selection-check.checked { background:#5968e8; color:#fff; }
+.theme-toggle { flex:0 0 auto; background:#27314b; color:#fff; border:1px solid #ffffff30; border-radius:12px; padding:10px 13px; font-size:14px; font-weight:700; }
+:root[data-theme="light"] .theme-toggle { background:#fff; color:#182033; border-color:#dce2ef; }
+
 * { box-sizing:border-box; }
 
 body {
@@ -392,6 +436,7 @@ button {
     <div class="brand">◉ FriendChat</div>
     <div class="sub">Private chats with your friends</div>
   </div>
+  <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
 
 </header>
 
@@ -1529,7 +1574,10 @@ $("messageForm").addEventListener("submit", async e => {
   }
 });
 
-</script>
+    <div class="sub">Private chats with your friends</div>
+  </div>
+  <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
 
-</body>
-</html>
+</header>
+
+<div id="main">
