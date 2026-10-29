@@ -384,7 +384,7 @@ button {
 
 /* Compact message delete menu */
 .chat-head{position:relative}
-#messageDeleteMenu{position:absolute;right:12px;top:calc(100% + 6px);z-index:500;min-width:190px;padding:8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px #0005;display:flex;flex-direction:column;gap:5px}
+#messageDeleteMenu{position:fixed;right:16px;bottom:calc(92px + env(safe-area-inset-bottom));top:auto;z-index:10000;min-width:190px;padding:8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px #0005;display:flex;flex-direction:column;gap:5px}
 #messageDeleteMenu.hidden{display:none!important}
 #messageDeleteMenu button{width:100%;text-align:left;padding:11px 13px;border-radius:9px;background:transparent;color:var(--text)}
 #messageDeleteMenu button.danger{color:#e5485d}
@@ -1387,6 +1387,7 @@ function openChat(friend, isSecret = false) {
             selectedMessageIds.clear();
             selectedMessageIds.add(item.id);
             updateMessageSelectionUI();
+            bubble.dispatchEvent(new CustomEvent("message-longpress"));
           }, 550);
         });
         const cancelHold = () => {
@@ -1547,10 +1548,14 @@ function openChat(friend, isSecret = false) {
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
           };
-          // Keep emoji reactions available by double-click; long-press is reserved
-          // for message selection and the delete menu.
+          // Long-press opens the reaction bar and selects the message for deletion.
+          bubble.addEventListener("message-longpress", event => {
+            if (event.target.closest("button,a,audio")) return;
+            openPicker(event);
+          });
+          // Keep double-tap support too.
           bubble.addEventListener("dblclick", event => {
-            if (messageSelectionMode || event.target.closest("button,a,audio")) return;
+            if (event.target.closest("button,a,audio")) return;
             openPicker(event);
           });
           quickbar.addEventListener("click",event=>event.stopPropagation());
