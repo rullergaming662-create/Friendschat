@@ -223,6 +223,7 @@ button {
   gap:10px;
 }
 
+.typing-indicator{padding:5px 16px 9px;color:var(--muted);font-size:13px;font-style:italic}.reply-preview{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--panel);border-top:1px solid var(--line);color:var(--muted)}.reply-preview span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.reply-preview button{padding:5px 9px;background:#34405c;color:#fff}
 .messages {
   flex:1;
   min-height:250px;
@@ -530,6 +531,8 @@ button {
 </div>
 
 <div id="messages" class="messages"></div>
+<div id="typingIndicator" class="typing-indicator hidden" aria-live="polite">Friend is typing…</div>
+<div id="replyPreview" class="reply-preview hidden"><span id="replyPreviewText"></span><button id="cancelReplyBtn" type="button" aria-label="Cancel reply">✕</button></div>
 <div id="messageDeleteMenu" class="message-delete-menu hidden" role="dialog" aria-label="Delete message">
   <button type="button" id="deleteForEveryoneBtn" class="danger">Delete for everyone</button>
   <button type="button" id="deleteForMeBtn">Delete for me</button>
@@ -553,13 +556,14 @@ button {
     </div>
   </div>
   <input id="photoInput" type="file" accept="image/*" hidden><input id="audioInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.webm" hidden><input id="fileInput" type="file" hidden><input id="documentInput" type="file" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,application/pdf" hidden>
+  <button id="voiceRecordBtn" class="secondary" type="button" title="Record voice message" aria-label="Record voice message">🎙</button>
   <input id="messageInput"
     type="text"
     maxlength="4000"
     placeholder="Type a message..."
     autocomplete="off">
 
-  <button class="primary" type="submit">➤</button>
+  <button id="sendBtn" class="primary" type="submit">➤</button>
 </form>
 
 </div>
@@ -672,6 +676,7 @@ let recentChatRecords = [];
 let activeChatSecret = false;
 
 let unsubscribeMessages = null;
+let unsubscribeTyping = null;
 let unsubscribeFriend = null;
 
 const authSection = $("auth");
@@ -1343,9 +1348,15 @@ function openChat(friend, isSecret = false) {
 
   if (unsubscribeMessages) unsubscribeMessages();
   if (unsubscribeFriend) unsubscribeFriend();
+  if (unsubscribeTyping) { unsubscribeTyping(); unsubscribeTyping=null; }
 
   const chatId = conversationId(currentUser.uid, friend.uid);
   currentChatId = chatId;
+  unsubscribeTyping=onSnapshot(doc(db,"chats",chatId),snap=>{
+    const typing=snap.data()?.typing||{};
+    const otherTyping=Object.entries(typing).some(([uid,value])=>uid!==currentUser.uid&&value===true);
+    $("typingIndicator").classList.toggle("hidden",!otherTyping);
+  },err=>console.warn("Typing indicator listener unavailable:",err));
   resetMessageSelection();
   // Opening a conversation clears its New Message badge. The live message
   // listener below refreshes the preview with the actual latest message.
@@ -1426,6 +1437,16 @@ function openChat(friend, isSecret = false) {
           }
         });
 
+        if (message.replyToText) {
+          const quoted=document.createElement("div");quoted.className="reply-quote";
+          quoted.textContent="↪ "+(message.replyToSenderName||"Message")+": "+message.replyToText;
+          quoted.style.cssText="border-left:3px solid var(--primary);padding:5px 8px;margin-bottom:7px;background:#6577ff18;border-radius:4px;font-size:12px;opacity:.9";
+          bubble.appendChild(quoted);
+        }
+        bubble.addEventListener("contextmenu", event=>{
+          if(messageSelectionMode || message.type==="deleted") return;
+          event.preventDefault();setReplyTarget({id:item.id,text:(message.text||message.fileName||"Attachment").slice(0,180),senderName:message.senderId===currentUser.uid?"You":(selectedUser?.name||"Friend")});
+        });
         if (message.type === "deleted") {
           const deletedText = document.createElement("div");
           deletedText.textContent = "🚫 This message was deleted";
@@ -1707,6 +1728,25 @@ function openPhotoViewer(dataUrl, fileName) {
   document.body.appendChild(viewer);
 }
 
+/* Reply-to-message, typing presence, and voice recording enhancements. */
+let replyTarget=null;
+function setReplyTarget(item){replyTarget=item;$("replyPreviewText").textContent="Replying to "+item.senderName+": "+item.text;$("replyPreview").classList.remove("hidden");$("messageInput").focus();}
+function clearReplyTarget(){replyTarget=null;$("replyPreview").classList.add("hidden");$("replyPreviewText").textContent="";}
+$("cancelReplyBtn").addEventListener("click",clearReplyTarget);
+$("messageInput").addEventListener("contextmenu",e=>e.preventDefault());
+let typingTimeout=null,typingWriteBusy=false;
+async function updateTyping(isTyping){if(!currentUser||!currentChatId||typingWriteBusy)return;typingWriteBusy=true;try{await setDoc(doc(db,"chats",currentChatId),{typing:{[currentUser.uid]:isTyping,updatedAt:serverTimestamp()}},{merge:true});}catch(e){console.warn("Typing indicator unavailable under current Firestore rules",e);}finally{typingWriteBusy=false;}}
+$("messageInput").addEventListener("input",()=>{updateTyping(true);clearTimeout(typingTimeout);typingTimeout=setTimeout(()=>updateTyping(false),1400);});
+let typingUnsubscribe=null;
+const originalOpenChat=typeof openChat==="function"?openChat:null;
+
+let mediaRecorder=null,recordedChunks=[];
+$("voiceRecordBtn").addEventListener("click",async()=>{
+ if(mediaRecorder&&mediaRecorder.state==="recording"){mediaRecorder.stop();$("voiceRecordBtn").textContent="🎙";$("voiceRecordBtn").title="Record voice message";return;}
+ if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){alert("Voice recording is not supported in this browser. Use the Audio attachment option instead.");return;}
+ try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});const options=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?{mimeType:"audio/webm;codecs=opus"}:{};mediaRecorder=new MediaRecorder(stream,options);recordedChunks=[];mediaRecorder.ondataavailable=e=>{if(e.data.size)recordedChunks.push(e.data);};mediaRecorder.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(recordedChunks,{type:mediaRecorder.mimeType||"audio/webm"});if(blob.size>950*1024){alert("Voice message is over 950 KB. Please record a shorter message.");return;}const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob);});selectedAttachment={type:"audio",name:"voice-message.webm",mimeType:blob.type||"audio/webm",data:dataUrl};selectedImageFile=null;selectedImageData=dataUrl;$("imagePreview").classList.add("hidden");$("imagePreviewName").textContent="🎙 Voice message ready to send";$("imagePreviewWrap").classList.remove("hidden");};mediaRecorder.start();$("voiceRecordBtn").textContent="⏹";$("voiceRecordBtn").title="Stop recording";}catch(err){alert("Microphone access nahi mila. Browser settings mein permission allow karein.");console.error(err);}
+});
+
 /* Attachment picker: photo, video, file or document */
 const attachBtn = $("attachBtn"), attachMenu = $("attachMenu");
 attachBtn.addEventListener("click", () => { const open=attachMenu.classList.contains("hidden"); attachMenu.classList.toggle("hidden",!open); attachBtn.setAttribute("aria-expanded",String(open)); });
@@ -1752,8 +1792,10 @@ $("messageForm").addEventListener("submit", async e => {
     senderId: currentUser.uid,
     receiverId: selectedUser.uid,
     createdAt: serverTimestamp(),
-    readAt: null
+    readAt: null,
+    deliveredAt: null
   };
+  if (replyTarget) { payload.replyToId=replyTarget.id; payload.replyToText=replyTarget.text; payload.replyToSenderName=replyTarget.senderName; }
   if (imageData) payload.imageData = imageData;
   if (attachment) {
     payload.fileName = attachment.name;
@@ -1771,6 +1813,7 @@ $("messageForm").addEventListener("submit", async e => {
     await addDoc(collection(db, "chats", chatId, "messages"), payload);
     input.value = "";
     clearSelectedImage();
+    clearReplyTarget();
 
     // Best-effort recent chat updates. Firestore rules may independently
     // restrict these writes; that must not undo or falsely fail the message.
