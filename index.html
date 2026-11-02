@@ -555,8 +555,9 @@ button {
   <button id="backBtn" class="secondary">‹</button>
   <div class="avatar" id="friendAvatar">F</div>
   <div id="friendName" style="flex:1">Friend</div>
-  <button id="messageDeleteMenuBtn" class="secondary hidden" type="button" aria-label="Delete selected message" title="Delete selected message">🗑️</button>
   <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
+  <button id="messageDeleteMenuBtn" class="secondary hidden" type="button" aria-label="Delete selected messages" title="Select messages to delete">🗑️</button>
+  <button id="messageDeleteMenuBtn" class="secondary hidden" type="button" aria-label="Delete selected messages" title="Delete selected messages">🗑️</button>
 </div>
 
 <div id="messages" class="messages"></div>
@@ -1251,7 +1252,9 @@ function cleanupChat() {
 /* WhatsApp-style message selection and deletion */
 function updateMessageSelectionUI() {
   const hasSelection = messageSelectionMode && selectedMessageIds.size > 0;
-  $("messageDeleteMenuBtn").classList.toggle("hidden", !hasSelection);
+  $("messageDeleteMenuBtn").classList.toggle("hidden", !selectedUser);
+  $("messageDeleteMenuBtn").title = hasSelection ? `${selectedMessageIds.size} selected — delete options` : "Select messages to delete";
+  $("messageDeleteMenuBtn").classList.toggle("primary", hasSelection);
   document.querySelectorAll("#messages [data-message-id]").forEach(el => {
     const selected = selectedMessageIds.has(el.dataset.messageId);
     el.classList.toggle("selected", selected);
@@ -1265,9 +1268,9 @@ function addSelectionChecks() {
     bubble.classList.add("selectable");
   });
 }
-function startMessageSelection() {
-  if (messageSelectionMode) return;
+function startMessageSelection(id) {
   messageSelectionMode = true;
+  if (id) selectedMessageIds.add(id);
   addSelectionChecks();
   updateMessageSelectionUI();
 }
@@ -1283,7 +1286,13 @@ function resetMessageSelection() {
 }
 $("messageDeleteMenuBtn").addEventListener("click", event => {
   event.stopPropagation();
-  if (!messageSelectionMode || selectedMessageIds.size === 0) return;
+  if (!messageSelectionMode || selectedMessageIds.size === 0) {
+    messageSelectionMode = true;
+    addSelectionChecks();
+    updateMessageSelectionUI();
+    $("messageDeleteMenu").classList.remove("hidden");
+    return;
+  }
   $("messageDeleteMenu").classList.toggle("hidden");
 });
 $("cancelMessageDelete").addEventListener("click", () => {
@@ -1439,8 +1448,7 @@ function openChat(friend, isSecret = false) {
         bubble.dataset.senderId = message.senderId || "";
         bubble.dataset.deleted = String(message.type === "deleted");
         if (messageSelectionMode) bubble.classList.add("selectable");
-        // Long-press opens the WhatsApp-style reaction bar.
-        // Message selection remains available through the existing selection mode.
+        // Long-press selects messages for multi-message deletion.
         let holdTimer = null;
         let holdTriggered = false;
         bubble.addEventListener("pointerdown", event => {
@@ -1448,12 +1456,10 @@ function openChat(friend, isSecret = false) {
           holdTriggered = false;
           holdTimer = setTimeout(() => {
             holdTriggered = true;
-            if (messageSelectionMode) {
-              selectedMessageIds.clear();
-              selectedMessageIds.add(item.id);
-              updateMessageSelectionUI();
+            if (message.type !== "deleted" && messageSelectionMode) {
+              toggleMessageSelection(item.id);
             } else if (message.type !== "deleted") {
-              bubble.dispatchEvent(new CustomEvent("message-longpress", { bubbles:false }));
+              bubble.dispatchEvent(new CustomEvent("message-longpress", {bubbles:false}));
             }
           }, 550);
         });
