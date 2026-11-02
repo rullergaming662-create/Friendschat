@@ -506,21 +506,6 @@ button {
 .composer #messageInput{align-self:center;min-height:56px;box-sizing:border-box}
 @media(prefers-reduced-motion:reduce){.composer #sendBtn,.composer .attach-button{transition:none}}
 
-
-/* WhatsApp-like compact audio messages and floating reaction chips. */
-.bubble:has(audio){position:relative;min-width:min(270px,78vw);max-width:min(360px,88vw);padding:9px 10px 8px;border-radius:12px}
-.bubble audio{width:100%!important;max-width:100%;height:42px;display:block}
-.bubble:has(audio) .photo-download{display:inline-flex;align-items:center;justify-content:center;margin:6px 0 0;padding:7px 12px;border-radius:9px;font-size:13px;text-decoration:none;background:color-mix(in srgb,var(--primary) 15%,var(--panel));color:var(--text)}
-.bubble:has(audio) .reaction-area{position:absolute;left:auto;right:8px;bottom:calc(100% - 8px);z-index:5;margin:0;width:max-content;max-width:calc(100vw - 32px);pointer-events:none}
-.bubble.theirs:has(audio) .reaction-area{left:8px;right:auto;align-items:flex-start}
-.bubble:has(audio) .reaction-list{pointer-events:auto;background:var(--panel);border:1px solid color-mix(in srgb,var(--primary) 32%,var(--line));border-radius:22px;padding:3px 6px;box-shadow:0 2px 9px #0002}
-.bubble:has(audio) .reaction-chip{padding:3px 8px;border-radius:18px;font-size:14px;line-height:1.2}
-.bubble:has(audio) .reaction-quickbar{position:absolute;bottom:calc(100% + 7px);left:auto;right:0;z-index:20;pointer-events:auto}
-.bubble.theirs:has(audio) .reaction-quickbar{left:0;right:auto}
-.bubble:has(audio) .reaction-picker{position:absolute;bottom:calc(100% + 7px);left:auto;right:0;z-index:21;pointer-events:auto}
-.bubble.theirs:has(audio) .reaction-picker{left:0;right:auto}
-@media(max-width:480px){.bubble:has(audio){min-width:min(245px,76vw);max-width:84vw}.bubble audio{height:40px}}
-
 </style>
 <style>
 
@@ -606,7 +591,7 @@ button:active{transform:scale(.97)}
 
 /* Fixed chat shell: only the message history scrolls, like WhatsApp. */
 html, body { width:100%; height:100%; min-height:0; margin:0; overflow:hidden; }
-#app { width:100%; height:100dvh; min-height:0; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column; }
+#app { width:100%; height:var(--chat-vh,100dvh); min-height:0; max-height:var(--chat-vh,100dvh); overflow:hidden; display:flex; flex-direction:column; }
 #workspace { flex:1 1 auto; min-height:0; height:100%; display:flex; flex-direction:column; overflow:hidden; }
 #workspace > header { flex:0 0 auto; }
 #main { flex:1 1 auto; min-height:0; height:0; display:flex; overflow:hidden; }
@@ -1694,9 +1679,10 @@ function openChat(friend, isSecret = false) {
         };
         bubble.addEventListener("pointerup",finishSwipe);
         bubble.addEventListener("pointercancel",event=>{if(swipePointerId===event.pointerId){bubble.style.transform="";bubble.classList.remove("reply-swiping","reply-swipe-ready");swipePointerId=null;swipeMoved=false;}});
+        // Long-press/context menu is reserved for reactions and message actions.
+        // Reply is started only by the deliberate horizontal swipe gesture.
         bubble.addEventListener("contextmenu", event=>{
-          if(messageSelectionMode || message.type==="deleted") return;
-          event.preventDefault();setReplyTarget({id:item.id,text:(message.text||message.fileName||"Attachment").slice(0,180),senderName:message.senderId===currentUser.uid?"You":(selectedUser?.name||"Friend")});
+          if(message.type!=="deleted") event.preventDefault();
         });
         if (message.type === "deleted") {
           const deletedText = document.createElement("div");
@@ -1870,6 +1856,11 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             try {
               await updateDoc(doc(db,"chats",chatId,"messages",item.id), {[`reactions.${currentUser.uid}`]:emoji});
               quickbar.classList.add("hidden"); picker.classList.add("hidden");
+              // WhatsApp-like behavior: after reacting, clear selection and
+              // close any reply preview. A reaction must never start a reply.
+              resetMessageSelection();
+              clearReplyTarget();
+              bubble.classList.remove("selected","message-selected");
             } catch(err) { alert("Reaction update failed: " + friendlyError(err)); }
           };
           quickChoices.forEach(emoji=>{
@@ -2135,6 +2126,29 @@ if (themeToggle) themeToggle.addEventListener("click", () => {
   applyTheme(nextTheme);
   try { localStorage.setItem("chatzapp-theme", nextTheme); } catch (_) {}
 });
+
+
+// Keep the chat composer just above the mobile keyboard. The header and composer
+// stay fixed while only the message history becomes shorter and scrolls.
+(function keepComposerAboveKeyboard(){
+  const root = document.documentElement;
+  const vv = window.visualViewport;
+  const setViewportHeight = () => {
+    const height = vv && vv.height ? vv.height : window.innerHeight;
+    root.style.setProperty('--chat-vh', `${Math.max(1, height)}px`);
+  };
+  setViewportHeight();
+  window.addEventListener('resize', setViewportHeight, {passive:true});
+  if (vv) vv.addEventListener('resize', setViewportHeight, {passive:true});
+  const input = document.getElementById('messageInput');
+  const messages = document.getElementById('messages');
+  if (input && messages) {
+    input.addEventListener('focus', () => {
+      setViewportHeight();
+      requestAnimationFrame(() => { messages.scrollTop = messages.scrollHeight; });
+    });
+  }
+})();
 
 </script>
 </body>
