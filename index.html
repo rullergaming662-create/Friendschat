@@ -146,8 +146,6 @@ button {
   overflow-wrap:anywhere;
 }
 
-#workspace > header { display:none; }
-
 #workspace {
   flex:1;
   display:flex;
@@ -507,114 +505,6 @@ button {
 @media(prefers-reduced-motion:reduce){.composer #sendBtn,.composer .attach-button{transition:none}}
 
 </style>
-<style>
-
-/* Chatzapp WhatsApp-inspired visual refresh (keeps existing app logic/features). */
-:root{
- --bg:#0b141a;--panel:#202c33;--primary:#00a884;--text:#e9edef;--muted:#8696a0;--line:#2a3942;
-}
-:root[data-theme="light"]{
- --bg:#f0f2f5;--panel:#ffffff;--primary:#008f72;--text:#111b21;--muted:#667781;--line:#e9edef;
-}
-html,body{min-height:100%;background:var(--bg)}
-body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}
-#app{max-width:1440px;min-height:100dvh;background:var(--bg);box-shadow:0 0 0 1px #00000012}
-#workspace>header{background:#202c33;color:#e9edef;padding:14px 20px;border-bottom:1px solid #2a3942;min-height:72px}
-:root[data-theme="light"] #workspace>header{background:#f0f2f5;color:#111b21;border-color:#d9e0e4}
-.brand{font-size:21px;letter-spacing:.1px}.sub{opacity:.78}
-.theme-toggle{border-radius:24px;background:#2a3942;border-color:#3b4a54;color:#e9edef}
-:root[data-theme="light"] .theme-toggle{background:#fff;color:#111b21;border-color:#d9e0e4}
-#main{background:var(--bg);min-height:0}
-.sidebar{width:340px;flex:0 0 340px;background:#111b21;border-right:1px solid #2a3942}
-:root[data-theme="light"] .sidebar{background:#fff;border-color:#e9edef}
-.me{min-height:76px;background:#202c33;color:#e9edef;padding:14px 16px}
-:root[data-theme="light"] .me{background:#f0f2f5;color:#111b21}
-.search{padding:10px 12px;background:#111b21}
-:root[data-theme="light"] .search{background:#fff}
-.search input{margin:0;border:0;border-radius:9px;background:#202c33;color:#e9edef;padding:12px 16px;font-size:14px}
-:root[data-theme="light"] .search input{background:#f0f2f5;color:#111b21}
-.person{background:#111b21;color:#e9edef;border-bottom:1px solid #202c33;padding:12px 15px;min-height:72px}
-:root[data-theme="light"] .person{background:#fff;color:#111b21;border-color:#f0f2f5}
-.person.active,.recent-person:hover,.person:hover{background:#202c33}
-:root[data-theme="light"] .person.active,:root[data-theme="light"] .recent-person:hover,:root[data-theme="light"] .person:hover{background:#f0f2f5}
-.avatar{background:#00a884;color:#fff}
-.chat{background:#0b141a;position:relative}
-.chat-head{min-height:72px;padding:12px 18px;background:#202c33;color:#e9edef;border-bottom:1px solid #2a3942}
-:root[data-theme="light"] .chat-head{background:#f0f2f5;color:#111b21;border-color:#d9e0e4}
-.chat-head #friendName{font-weight:600;line-height:1.25}.chat-head #friendStatus{font-size:12px;color:var(--muted);line-height:1.2}.chat-head #friendStatus.online{color:#22c55e}.chat-head #friendStatus.offline{color:var(--muted)}
-.messages{padding:22px clamp(12px,4vw,56px);gap:7px;background-color:#0b141a;background-image:radial-gradient(rgba(134,150,160,.055) .7px,transparent .7px);background-size:17px 17px}
-:root[data-theme="light"] .messages{background-color:#efeae2;background-image:radial-gradient(rgba(17,27,33,.045) .7px,transparent .7px)}
-.bubble{max-width:min(78%,620px);background:#202c33;color:#e9edef;border-radius:8px 8px 8px 2px;padding:8px 10px;box-shadow:0 1px 1px #00000015;font-size:14.5px;line-height:1.42}
-.bubble.mine{background:#005c4b;color:#e9edef;border-radius:8px 8px 2px 8px}
-:root[data-theme="light"] .bubble{background:#fff;color:#111b21}
-:root[data-theme="light"] .bubble.mine{background:#d9fdd3;color:#111b21}
-.time{font-size:10.5px;color:#b3c0c8;margin-top:4px}
-:root[data-theme="light"] .time{color:#667781}
-.composer{padding:10px 14px;background:#202c33;gap:9px;border-top:1px solid #2a3942;min-height:76px}
-:root[data-theme="light"] .composer{background:#f0f2f5;border-color:#d9e0e4}
-.composer input#messageInput{margin:0;border:0;border-radius:24px;background:#2a3942;color:#e9edef;padding:15px 20px;min-height:50px;font-size:15px;outline:none}
-:root[data-theme="light"] .composer input#messageInput{background:#fff;color:#111b21}
-.composer input#messageInput:focus{box-shadow:0 0 0 1px #00a88422}
-.composer .attach-wrap{width:48px;height:48px;flex:0 0 48px}
-.composer .attach-button,.composer #voiceRecordBtn,.composer #sendBtn{width:48px;height:48px;min-width:48px;flex:0 0 48px;border-radius:50%;display:grid;place-items:center}
-.composer .attach-button{background:transparent!important;color:#aebac1!important;border:0!important;box-shadow:none!important}
-.composer #voiceRecordBtn{background:transparent!important;color:#aebac1!important;border:0!important;box-shadow:none!important}
-.composer #sendBtn{background:#00a884!important;color:#fff!important;border:0!important;box-shadow:none!important}
-.composer .attach-button svg,.composer #voiceRecordBtn svg,.composer #sendBtn svg{width:25px!important;height:25px!important}
-.composer .attach-button:hover,.composer #voiceRecordBtn:hover{background:#2a3942!important}
-.composer #sendBtn:hover{filter:brightness(1.08)}
-.voice-recorder-bar{background:#2a3942;color:#e9edef;border-radius:26px}
-.voice-recorder-bar button{background:#00a884;color:#fff}
-.attach-menu{background:#23313a;border-color:#354650}
-.attach-option{color:#e9edef}
-.secondary{background:#2a3942;color:#e9edef}
-:root[data-theme="light"] .secondary{background:#e9edef;color:#111b21}
-button{transition:background-color .14s ease,transform .14s ease,filter .14s ease}
-button:active{transform:scale(.97)}
-@media(max-width:720px){
- #app{min-height:100dvh}
- #workspace>header{padding:11px 14px;min-height:62px}
- .sidebar{width:100%;flex-basis:100%}
- .chat-head{min-height:64px;padding:10px 12px}
- .messages{padding:14px 10px}
- .bubble{max-width:88%;font-size:14px}
- .composer{padding:8px 9px;gap:4px;min-height:66px}
- .composer .attach-wrap{width:40px;height:48px;flex-basis:40px}
- .composer .attach-button,.composer #voiceRecordBtn,.composer #sendBtn{width:44px;height:44px;min-width:44px;flex-basis:44px}
- .composer input#messageInput{padding:13px 15px;min-height:46px}
-}
-
-/* Final composer polish: transparent send action. */
-.composer #sendBtn{background:transparent!important;color:var(--primary)!important;border:1px solid color-mix(in srgb,var(--primary) 18%,transparent)!important;box-shadow:none!important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.composer #sendBtn svg{color:var(--primary)!important;fill:currentColor!important}
-.composer #sendBtn:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
-
-/* Fixed chat shell: only the message history scrolls, like WhatsApp. */
-html, body { width:100%; height:100%; min-height:0; margin:0; overflow:hidden; }
-#app { width:100%; height:100dvh; min-height:0; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column; }
-#workspace { flex:1 1 auto; min-height:0; height:100%; display:flex; flex-direction:column; overflow:hidden; }
-#workspace > header { flex:0 0 auto; }
-#main { flex:1 1 auto; min-height:0; height:0; display:flex; overflow:hidden; }
-.sidebar { min-height:0; overflow-y:auto; overscroll-behavior:contain; }
-#chatPanel.chat { flex:1 1 auto; min-width:0; min-height:0; height:100%; overflow:hidden; }
-#activeChat { flex:1 1 auto !important; min-height:0 !important; height:100%; overflow:hidden; }
-.chat-head { flex:0 0 auto; }
-#messages.messages { flex:1 1 auto; min-height:0; height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
-#typingIndicator, #replyPreview, #imagePreviewWrap, #messageForm.composer { flex:0 0 auto; }
-#messageForm.composer { position:relative; z-index:5; padding-bottom:calc(10px + env(safe-area-inset-bottom)); }
-@media(max-width:650px) {
-  #main { position:relative; }
-  .chat.chat-open { position:absolute; inset:0; height:100%; }
-  #workspace > header { min-height:60px; padding:10px 14px; }
-  #messages.messages { padding-bottom:12px; }
-}
-
-/* WhatsApp-style swipe reply feedback */
-.bubble.reply-swiping{transition:transform .08s linear;will-change:transform}
-.bubble.reply-swipe-ready{box-shadow:0 0 0 2px var(--primary),0 2px 10px #0002}
-
-</style>
-
 </head>
 
 <body>
@@ -706,8 +596,8 @@ html, body { width:100%; height:100%; min-height:0; margin:0; overflow:hidden; }
 
 <div class="chat-head">
   <button id="backBtn" class="secondary">‹</button>
-  <div class="avatar" id="friendAvatar" title="View profile photo">F</div>
-  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><div id="friendName">Friend</div><div id="friendStatus" class="person-status">Offline</div></div>
+  <div class="avatar" id="friendAvatar">F</div>
+  <div id="friendName" style="flex:1">Friend</div>
   <button id="messageDeleteMenuBtn" class="secondary hidden" type="button" aria-label="Delete selected message" title="Delete selected message">🗑️</button>
   <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
 </div>
@@ -1190,27 +1080,6 @@ function isUserOnline(user) {
   return user.online === true && lastSeenMs > 0 && (Date.now() - lastSeenMs) < 60000;
 }
 
-function formatLastSeen(user) {
-  const stamp = user && user.lastSeen;
-  const ms = stamp && typeof stamp.toMillis === "function" ? stamp.toMillis() : (stamp instanceof Date ? stamp.getTime() : 0);
-  if (!ms) return "Last seen recently";
-  const d = new Date(ms);
-  const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
-  const yesterday = new Date(now); yesterday.setDate(now.getDate()-1);
-  if (sameDay) return "Last seen today at " + d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-  if (d.toDateString() === yesterday.toDateString()) return "Last seen yesterday at " + d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-  return "Last seen " + d.toLocaleDateString([], {day:"numeric",month:"short"}) + " at " + d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-}
-function updateChatPresence(user) {
-  const status = $("friendStatus");
-  if (!status || !user) return;
-  const online = isUserOnline(user);
-  status.textContent = online ? "● Online" : formatLastSeen(user);
-  status.classList.toggle("online", online);
-  status.classList.toggle("offline", !online);
-}
-
 function renderRecentChats() {
   const normalList = $("recentList");
   if (!normalList) return;
@@ -1249,10 +1118,6 @@ async function loadUsers() {
       .filter(u => u.uid && u.uid !== currentUser.uid && u.name);
     renderUsers();
     renderRecentChats();
-    if (selectedUser) {
-      const freshPeer = allUsers.find(u => u.uid === selectedUser.uid);
-      if (freshPeer) { selectedUser = freshPeer; updateChatPresence(freshPeer); }
-    }
   }, err => {
     console.warn("Users listener:", err);
     $("userList").innerHTML = `<div class="empty">${friendlyError(err)}</div>`;
@@ -1428,7 +1293,7 @@ function cleanupChat() {
 
 /* WhatsApp-style message selection and deletion */
 function updateMessageSelectionUI() {
-  const hasSelection = selectedMessageIds.size > 0;
+  const hasSelection = messageSelectionMode && selectedMessageIds.size > 0;
   $("messageDeleteMenuBtn").classList.toggle("hidden", !hasSelection);
   document.querySelectorAll("#messages [data-message-id]").forEach(el => {
     const selected = selectedMessageIds.has(el.dataset.messageId);
@@ -1548,7 +1413,6 @@ function openChat(friend, isSecret = false) {
   $("activeChat").classList.remove("hidden");
 
   $("friendName").textContent = friend.name;
-  updateChatPresence(allUsers.find(u => u.uid === friend.uid) || friend);
 
   renderAvatar($("friendAvatar"), friend.name, friend.photoData || "");
 
@@ -1627,8 +1491,7 @@ function openChat(friend, isSecret = false) {
           holdTriggered = false;
           holdTimer = setTimeout(() => {
             holdTriggered = true;
-            // Long press selects this single message for the top delete action,
-            // while also opening its emoji reaction bar (WhatsApp-like behavior).
+            startMessageSelection();
             selectedMessageIds.clear();
             selectedMessageIds.add(item.id);
             updateMessageSelectionUI();
@@ -1653,32 +1516,6 @@ function openChat(friend, isSecret = false) {
           quoted.style.cssText="border-left:3px solid var(--primary);padding:5px 8px;margin-bottom:7px;background:#6577ff18;border-radius:4px;font-size:12px;opacity:.9";
           bubble.appendChild(quoted);
         }
-        // WhatsApp-style horizontal swipe on a message to start a reply.
-        let swipeStartX=0,swipeStartY=0,swipePointerId=null,swipeMoved=false;
-        bubble.addEventListener("pointerdown",event=>{
-          if(messageSelectionMode || message.type==="deleted" || event.target.closest("button,a,audio,input")) return;
-          swipeStartX=event.clientX;swipeStartY=event.clientY;swipePointerId=event.pointerId;swipeMoved=false;
-          bubble.classList.add("reply-swiping");
-        });
-        bubble.addEventListener("pointermove",event=>{
-          if(swipePointerId!==event.pointerId) return;
-          const dx=event.clientX-swipeStartX,dy=event.clientY-swipeStartY;
-          if(Math.abs(dx)>Math.abs(dy)*1.25 && dx>8){
-            swipeMoved=true;bubble.style.transform=`translateX(${Math.min(dx,76)}px)`;
-            bubble.classList.toggle("reply-swipe-ready",dx>=52);
-          }
-        });
-        const finishSwipe=event=>{
-          if(swipePointerId!==event.pointerId)return;
-          const dx=event.clientX-swipeStartX,dy=event.clientY-swipeStartY;
-          bubble.style.transform="";bubble.classList.remove("reply-swiping","reply-swipe-ready");
-          if(swipeMoved && dx>=52 && Math.abs(dy)<70 && !messageSelectionMode && message.type!=="deleted"){
-            setReplyTarget({id:item.id,text:(message.text||message.fileName||"Attachment").slice(0,180),senderName:message.senderId===currentUser.uid?"You":(selectedUser?.name||"Friend")});
-          }
-          swipePointerId=null;swipeMoved=false;
-        };
-        bubble.addEventListener("pointerup",finishSwipe);
-        bubble.addEventListener("pointercancel",event=>{if(swipePointerId===event.pointerId){bubble.style.transform="";bubble.classList.remove("reply-swiping","reply-swipe-ready");swipePointerId=null;swipeMoved=false;}});
         bubble.addEventListener("contextmenu", event=>{
           if(messageSelectionMode || message.type==="deleted") return;
           event.preventDefault();setReplyTarget({id:item.id,text:(message.text||message.fileName||"Attachment").slice(0,180),senderName:message.senderId===currentUser.uid?"You":(selectedUser?.name||"Friend")});
@@ -1824,7 +1661,7 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
 });
 
         // Double-tap a message to open the emoji reaction picker.
-        if (message.type !== "deleted") {
+        if (message.type !== "deleted" && !messageSelectionMode) {
           const reactionArea = document.createElement("div");
           reactionArea.className = "reaction-area";
           const reactionList = document.createElement("div");
@@ -1885,7 +1722,7 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
           };
-          // Long-press on a message opens reactions and reveals the top delete icon.
+          // Long-press on either sent or received message opens reactions.
           // Avoid relying on event.target because it may be nested text/media.
           bubble.addEventListener("message-longpress", event => {
             event.preventDefault?.();
