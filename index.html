@@ -435,6 +435,7 @@ button {
 .reaction-picker-label{font-size:11px;color:var(--muted);padding:0 2px}
 .bubble{touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .bubble .reaction-area{pointer-events:auto}
+.bubble{ -webkit-touch-callout:none; }
 .bubble .reaction-quickbar,.bubble .reaction-picker{touch-action:manipulation}
 @media(max-width:650px){.reaction-picker{width:min(300px,82vw)}.reaction-emoji-grid{max-height:190px}.reaction-emoji{font-size:22px}}
 
@@ -1500,24 +1501,34 @@ function openChat(friend, isSecret = false) {
           if (holdTimer) clearTimeout(holdTimer);
           holdTimer = null;
         };
-        bubble.addEventListener("pointerdown", event => {
-          if (event.target.closest("a,button,audio,input")) return;
-          if (event.pointerType === "mouse" && event.button !== 0) return;
+        const startHold = (x, y, target) => {
+          if (target && target.closest && target.closest("a,button,audio,input")) return;
           cancelHold();
           holdTriggered = false;
-          holdStartX = event.clientX;
-          holdStartY = event.clientY;
-          holdTimer = setTimeout(triggerMessageHold, 500);
+          holdStartX = x;
+          holdStartY = y;
+          holdTimer = setTimeout(() => {
+            holdTimer = null;
+            triggerMessageHold();
+          }, 650);
+        };
+        bubble.addEventListener("pointerdown", event => {
+          if (event.pointerType === "mouse" && event.button !== 0) return;
+          startHold(event.clientX, event.clientY, event.target);
         });
         bubble.addEventListener("pointermove", event => {
-          if (holdTimer && (Math.abs(event.clientX-holdStartX)>12 || Math.abs(event.clientY-holdStartY)>12)) cancelHold();
+          if (holdTimer && (Math.abs(event.clientX-holdStartX)>14 || Math.abs(event.clientY-holdStartY)>14)) cancelHold();
         });
-        ["pointerup", "pointercancel", "pointerleave"].forEach(type => bubble.addEventListener(type, cancelHold));
+        bubble.addEventListener("pointerup", cancelHold);
+        bubble.addEventListener("pointercancel", () => { if (!holdTriggered) cancelHold(); });
+        // Android may emit a native contextmenu after a long touch. Keep it
+        // from closing the reaction bar or opening the browser's own menu.
         bubble.addEventListener("contextmenu", event => {
           if (event.target.closest("a,button,audio,input")) return;
           event.preventDefault();
+          event.stopPropagation();
           cancelHold();
-          triggerMessageHold();
+          if (!holdTriggered) triggerMessageHold();
         });
         bubble.addEventListener("click", event => {
           if (holdTriggered) { event.preventDefault(); event.stopPropagation(); holdTriggered = false; return; }
