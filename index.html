@@ -591,7 +591,7 @@ button:active{transform:scale(.97)}
 
 /* Fixed chat shell: only the message history scrolls, like WhatsApp. */
 html, body { width:100%; height:100%; min-height:0; margin:0; overflow:hidden; }
-#app { width:100%; height:100dvh; min-height:0; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column; }
+#app { width:100%; height:var(--chat-vh,100dvh); min-height:0; max-height:var(--chat-vh,100dvh); overflow:hidden; display:flex; flex-direction:column; }
 #workspace { flex:1 1 auto; min-height:0; height:100%; display:flex; flex-direction:column; overflow:hidden; }
 #workspace > header { flex:0 0 auto; }
 #main { flex:1 1 auto; min-height:0; height:0; display:flex; overflow:hidden; }
@@ -613,6 +613,18 @@ html, body { width:100%; height:100%; min-height:0; margin:0; overflow:hidden; }
 .bubble.reply-swiping{transition:transform .08s linear;will-change:transform}
 .bubble.reply-swipe-ready{box-shadow:0 0 0 2px var(--primary),0 2px 10px #0002}
 
+/* Reaction overlays are detached from message bubbles so they never get clipped
+   or painted behind the selected message. */
+.reaction-quickbar,
+.reaction-picker {
+  position: fixed !important;
+  inset: auto !important;
+  z-index: 2147483000 !important;
+  margin: 0 !important;
+  max-width: calc(100vw - 16px);
+}
+.reaction-quickbar { display:flex; }
+.reaction-quickbar.hidden,.reaction-picker.hidden { display:none !important; }
 </style>
 
 </head>
@@ -1452,6 +1464,13 @@ function startMessageSelection() {
 function toggleMessageSelection(id) {
   if (selectedMessageIds.has(id)) selectedMessageIds.delete(id);
   else selectedMessageIds.add(id);
+  if (selectedMessageIds.size === 0) {
+    messageSelectionMode = false;
+    document.querySelectorAll("#messages [data-message-id]").forEach(el => el.classList.remove("selectable"));
+  } else {
+    messageSelectionMode = true;
+    addSelectionChecks();
+  }
   updateMessageSelectionUI();
 }
 function resetMessageSelection() {
@@ -1629,8 +1648,10 @@ function openChat(friend, isSecret = false) {
             holdTriggered = true;
             // Long press selects this single message for the top delete action,
             // while also opening its emoji reaction bar (WhatsApp-like behavior).
+            messageSelectionMode = true;
             selectedMessageIds.clear();
             selectedMessageIds.add(item.id);
+            addSelectionChecks();
             updateMessageSelectionUI();
             bubble.dispatchEvent(new CustomEvent("message-longpress"));
           }, 550);
@@ -1679,9 +1700,10 @@ function openChat(friend, isSecret = false) {
         };
         bubble.addEventListener("pointerup",finishSwipe);
         bubble.addEventListener("pointercancel",event=>{if(swipePointerId===event.pointerId){bubble.style.transform="";bubble.classList.remove("reply-swiping","reply-swipe-ready");swipePointerId=null;swipeMoved=false;}});
+        // Long-press/context menu is reserved for reactions and message actions.
+        // Reply is started only by the deliberate horizontal swipe gesture.
         bubble.addEventListener("contextmenu", event=>{
-          if(messageSelectionMode || message.type==="deleted") return;
-          event.preventDefault();setReplyTarget({id:item.id,text:(message.text||message.fileName||"Attachment").slice(0,180),senderName:message.senderId===currentUser.uid?"You":(selectedUser?.name||"Friend")});
+          if(message.type!=="deleted") event.preventDefault();
         });
         if (message.type === "deleted") {
           const deletedText = document.createElement("div");
@@ -1850,13 +1872,41 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
 
           // Quick reaction bar: six common emoji + a plus button for the full emoji list.
           const quickbar = document.createElement("div"); quickbar.className = "reaction-quickbar hidden";
+          const placeReactionPopup = popup => {
+            requestAnimationFrame(() => {
+              const r = bubble.getBoundingClientRect();
+              const pr = popup.getBoundingClientRect();
+              const w = pr.width || 290, h = pr.height || 56;
+              const gap = 9;
+              // Prefer the clear space immediately above the held message.
+              // If there isn't enough room, place it below the message instead.
+              const topAbove = r.top - h - gap;
+              const topBelow = r.bottom + gap;
+              const top = topAbove >= 8 ? topAbove :
+                (topBelow + h <= window.innerHeight - 8 ? topBelow :
+                Math.max(8, Math.min(topAbove, window.innerHeight - h - 8)));
+              const left = Math.max(8, Math.min(
+                r.left + (r.width - w) / 2,
+                window.innerWidth - w - 8
+              ));
+              popup.style.position = "fixed";
+              popup.style.left = left + "px";
+              popup.style.top = top + "px";
+              popup.style.transform = "none";
+              popup.style.visibility = "visible";
+              popup.style.opacity = "1";
+            });
+          };
           const quickChoices = ["👍","❤️","😂","😮","😢","🙏"];
           const applyReaction = async emoji => {
             try {
               await updateDoc(doc(db,"chats",chatId,"messages",item.id), {[`reactions.${currentUser.uid}`]:emoji});
-              quickbar.classList.add("hidden"); picker.classList.add("hidden");
-              // WhatsApp-like behavior: after applying a reaction, exit message-selection mode.
+              // Reacting clears every selected message and closes all selection/reaction controls.
+              document.querySelectorAll(".reaction-quickbar,.reaction-picker").forEach(el=>el.classList.add("hidden"));
+              $("messageDeleteMenu").classList.add("hidden");
               resetMessageSelection();
+              clearReplyTarget();
+              bubble.classList.remove("selected","message-selected");
             } catch(err) { alert("Reaction update failed: " + friendlyError(err)); }
           };
           quickChoices.forEach(emoji=>{
@@ -1866,7 +1916,10 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             quickbar.appendChild(b);
           });
           const plus=document.createElement("button"); plus.type="button"; plus.className="reaction-quick plus"; plus.textContent="+"; plus.setAttribute("aria-label","More emoji");
-          quickbar.appendChild(plus); reactionArea.appendChild(quickbar);
+          quickbar.appendChild(plus);
+          quickbar.style.position = "fixed";
+          quickbar.style.zIndex = "2147483000";
+          document.body.appendChild(quickbar);
 
           const picker = document.createElement("div"); picker.className = "reaction-picker hidden";
           picker.setAttribute("role","dialog"); picker.setAttribute("aria-label","Choose emoji reaction");
@@ -1880,23 +1933,34 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             });
           };
           drawEmoji();
-          picker.appendChild(grid); reactionArea.appendChild(picker);
-          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");});
+          picker.appendChild(grid);
+          picker.style.position = "fixed";
+          picker.style.zIndex = "2147483000";
+          document.body.appendChild(picker);
+          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");if(!picker.classList.contains("hidden"))placeReactionPopup(picker);});
           const openPicker=event=>{
             if(event){event.preventDefault();event.stopPropagation();}
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
+            if(!quickbar.classList.contains("hidden"))placeReactionPopup(quickbar);
           };
           // Long-press on a message opens reactions and reveals the top delete icon.
           // Avoid relying on event.target because it may be nested text/media.
           bubble.addEventListener("message-longpress", event => {
             event.preventDefault?.();
             event.stopPropagation?.();
+            // Open reaction actions directly on long-press (not via a delayed toggle).
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{
               if(other!==quickbar && other!==picker) other.classList.add("hidden");
             });
             picker.classList.add("hidden");
             quickbar.classList.remove("hidden");
+            quickbar.style.display = "flex";
+            quickbar.style.visibility = "visible";
+            quickbar.style.opacity = "1";
+            quickbar.style.pointerEvents = "auto";
+            quickbar.style.zIndex = "2147483000";
+            placeReactionPopup(quickbar);
           });
           // Keep double-tap support too.
           bubble.addEventListener("dblclick", event => {
@@ -1906,7 +1970,7 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
           quickbar.addEventListener("click",event=>event.stopPropagation());
           picker.addEventListener("click",event=>event.stopPropagation());
           document.addEventListener("pointerdown",event=>{
-            if(!reactionArea.contains(event.target)){
+            if(!quickbar.contains(event.target) && !picker.contains(event.target) && event.target!==bubble && !bubble.contains(event.target)){
               quickbar.classList.add("hidden");
               picker.classList.add("hidden");
             }
@@ -2122,6 +2186,29 @@ if (themeToggle) themeToggle.addEventListener("click", () => {
   applyTheme(nextTheme);
   try { localStorage.setItem("chatzapp-theme", nextTheme); } catch (_) {}
 });
+
+
+// Keep the chat composer just above the mobile keyboard. The header and composer
+// stay fixed while only the message history becomes shorter and scrolls.
+(function keepComposerAboveKeyboard(){
+  const root = document.documentElement;
+  const vv = window.visualViewport;
+  const setViewportHeight = () => {
+    const height = vv && vv.height ? vv.height : window.innerHeight;
+    root.style.setProperty('--chat-vh', `${Math.max(1, height)}px`);
+  };
+  setViewportHeight();
+  window.addEventListener('resize', setViewportHeight, {passive:true});
+  if (vv) vv.addEventListener('resize', setViewportHeight, {passive:true});
+  const input = document.getElementById('messageInput');
+  const messages = document.getElementById('messages');
+  if (input && messages) {
+    input.addEventListener('focus', () => {
+      setViewportHeight();
+      requestAnimationFrame(() => { messages.scrollTop = messages.scrollHeight; });
+    });
+  }
+})();
 
 </script>
 </body>
