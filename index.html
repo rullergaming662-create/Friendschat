@@ -1694,7 +1694,10 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             try {
               await updateDoc(doc(db,"chats",chatId,"messages",item.id), {[`reactions.${currentUser.uid}`]:emoji});
               quickbar.classList.add("hidden"); picker.classList.add("hidden"); reactionArea.classList.remove("reaction-open");
-            } catch(err) { alert("Reaction update failed: " + friendlyError(err)); }
+            } catch(err) {
+              console.error("Reaction update failed:", err);
+              alert("Reaction save nahi hua: " + friendlyError(err));
+            }
           };
           quickChoices.forEach(emoji=>{
             const b=document.createElement("button"); b.type="button"; b.className="reaction-quick"; b.textContent=emoji;
@@ -1766,10 +1769,16 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
           message.receiverId === currentUser.uid &&
           !message.readAt
         ) {
+          // Receiver marks the incoming message as read. The sender's live
+          // snapshot observes readAt and renders the blue double tick.
           updateDoc(
             doc(db, "chats", chatId, "messages", item.id),
             { readAt: serverTimestamp() }
-          ).catch(console.error);
+          ).catch(err => {
+            console.error("Read receipt update failed:", err);
+            // A rules-denied update cannot be repaired from client HTML; keep
+            // the failure visible in the console for accurate Firebase Rules fixes.
+          });
         }
       });
 
@@ -1925,7 +1934,7 @@ $("messageForm").addEventListener("submit", async e => {
     }
   } catch (err) {
     console.error("Message send failed:", err);
-    alert("Message send nahi hua: " + friendlyError(err));
+    alert("Message send nahi hua: " + friendlyError(err) + "\n\nAgar permission-denied aa raha hai, Firebase Firestore Rules mein chats/messages ke create aur readAt/reactions update permissions check karne honge.");
     input.value = oldText;
   } finally {
     messageSendInProgress = false;
