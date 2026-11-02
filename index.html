@@ -613,6 +613,18 @@ html, body { width:100%; height:100%; min-height:0; margin:0; overflow:hidden; }
 .bubble.reply-swiping{transition:transform .08s linear;will-change:transform}
 .bubble.reply-swipe-ready{box-shadow:0 0 0 2px var(--primary),0 2px 10px #0002}
 
+/* Reaction overlays are detached from message bubbles so they never get clipped
+   or painted behind the selected message. */
+.reaction-quickbar,
+.reaction-picker {
+  position: fixed !important;
+  inset: auto !important;
+  z-index: 2147483000 !important;
+  margin: 0 !important;
+  max-width: calc(100vw - 16px);
+}
+.reaction-quickbar { display:flex; }
+.reaction-quickbar.hidden,.reaction-picker.hidden { display:none !important; }
 </style>
 
 </head>
@@ -1864,9 +1876,21 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             requestAnimationFrame(() => {
               const r = bubble.getBoundingClientRect();
               const pr = popup.getBoundingClientRect();
-              const w = pr.width || 290, h = pr.height || 54;
-              popup.style.left = Math.max(8, Math.min(r.left + (r.width-w)/2, innerWidth-w-8)) + "px";
-              popup.style.top = Math.max(8, r.top-h-8) + "px";
+              const w = pr.width || 290, h = pr.height || 56;
+              const gap = 9;
+              // Prefer the clear space immediately above the held message.
+              // If there isn't enough room, place it below the message instead.
+              const topAbove = r.top - h - gap;
+              const topBelow = r.bottom + gap;
+              const top = topAbove >= 8 ? topAbove :
+                (topBelow + h <= window.innerHeight - 8 ? topBelow :
+                Math.max(8, Math.min(topAbove, window.innerHeight - h - 8)));
+              const left = Math.max(8, Math.min(
+                r.left + (r.width - w) / 2,
+                window.innerWidth - w - 8
+              ));
+              popup.style.left = left + "px";
+              popup.style.top = top + "px";
             });
           };
           const quickChoices = ["👍","❤️","😂","😮","😢","🙏"];
@@ -1888,7 +1912,7 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             quickbar.appendChild(b);
           });
           const plus=document.createElement("button"); plus.type="button"; plus.className="reaction-quick plus"; plus.textContent="+"; plus.setAttribute("aria-label","More emoji");
-          quickbar.appendChild(plus); reactionArea.appendChild(quickbar);
+          quickbar.appendChild(plus); document.body.appendChild(quickbar);
 
           const picker = document.createElement("div"); picker.className = "reaction-picker hidden";
           picker.setAttribute("role","dialog"); picker.setAttribute("aria-label","Choose emoji reaction");
@@ -1902,7 +1926,7 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             });
           };
           drawEmoji();
-          picker.appendChild(grid); reactionArea.appendChild(picker);
+          picker.appendChild(grid); document.body.appendChild(picker);
           plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");if(!picker.classList.contains("hidden"))placeReactionPopup(picker);});
           const openPicker=event=>{
             if(event){event.preventDefault();event.stopPropagation();}
