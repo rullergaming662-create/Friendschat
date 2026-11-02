@@ -1855,6 +1855,8 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             try {
               await updateDoc(doc(db,"chats",chatId,"messages",item.id), {[`reactions.${currentUser.uid}`]:emoji});
               quickbar.classList.add("hidden"); picker.classList.add("hidden");
+              // WhatsApp-like behavior: after applying a reaction, exit message-selection mode.
+              resetMessageSelection();
             } catch(err) { alert("Reaction update failed: " + friendlyError(err)); }
           };
           quickChoices.forEach(emoji=>{
