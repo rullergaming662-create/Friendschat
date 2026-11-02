@@ -504,18 +504,6 @@ button {
 .composer #messageInput{align-self:center;min-height:56px;box-sizing:border-box}
 @media(prefers-reduced-motion:reduce){.composer #sendBtn,.composer .attach-button{transition:none}}
 
-
-/* Final composer polish: transparent send action, matching the user's reference. */
-.composer #sendBtn{
-  background:transparent!important;
-  color:var(--primary)!important;
-  border:1px solid color-mix(in srgb,var(--primary) 18%,transparent)!important;
-  box-shadow:none!important;
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-}
-.composer #sendBtn svg{color:var(--primary)!important;fill:currentColor!important;}
-.composer #sendBtn:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
-
 </style>
 <style>
 
@@ -594,13 +582,17 @@ button:active{transform:scale(.97)}
  .composer input#messageInput{padding:13px 15px;min-height:46px}
 }
 
+/* Final composer polish: transparent send action. */
+.composer #sendBtn{background:transparent!important;color:var(--primary)!important;border:1px solid color-mix(in srgb,var(--primary) 18%,transparent)!important;box-shadow:none!important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.composer #sendBtn svg{color:var(--primary)!important;fill:currentColor!important}
+.composer #sendBtn:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+
+/* WhatsApp-style swipe reply feedback */
+.bubble.reply-swiping{transition:transform .08s linear;will-change:transform}
+.bubble.reply-swipe-ready{box-shadow:0 0 0 2px var(--primary),0 2px 10px #0002}
+
 </style>
 
-
-
-/* Swipe-to-reply visual feedback */
-.bubble.reply-swipe-active{animation:replySwipePulse .26s ease-out}
-@keyframes replySwipePulse{0%{transform:translateX(0)}45%{transform:translateX(7px)}100%{transform:translateX(0)}}
 </head>
 
 <body>
@@ -1543,18 +1535,6 @@ function openChat(friend, isSecret = false) {
         const m = item.data();
         return !(Array.isArray(m.deletedFor) && m.deletedFor.includes(currentUser.uid)) && !(Array.isArray(m.hiddenFor) && m.hiddenFor.includes(currentUser.uid));
       });
-      // Mark incoming messages as delivered/read while this conversation is open.
-      // This is best-effort and depends on the deployed Firestore rules allowing
-      // the recipient to update receipt fields on messages in this chat.
-      visibleDocs.forEach(item => {
-        const m = item.data();
-        if (m.senderId !== currentUser.uid && (!m.readAt || !m.deliveredAt)) {
-          updateDoc(doc(db, "chats", chatId, "messages", item.id), {
-            deliveredAt: m.deliveredAt || serverTimestamp(),
-            readAt: m.readAt || serverTimestamp()
-          }).catch(err => console.warn("Receipt update blocked by Firestore rules:", err));
-        }
-      });
       const latestDoc = visibleDocs.length ? visibleDocs[visibleDocs.length - 1] : null;
       if (latestDoc) {
         const latestMessage = latestDoc.data();
@@ -1624,30 +1604,36 @@ function openChat(friend, isSecret = false) {
           quoted.style.cssText="border-left:3px solid var(--primary);padding:5px 8px;margin-bottom:7px;background:#6577ff18;border-radius:4px;font-size:12px;opacity:.9";
           bubble.appendChild(quoted);
         }
+        // WhatsApp-style horizontal swipe on a message to start a reply.
+        let swipeStartX=0,swipeStartY=0,swipePointerId=null,swipeMoved=false;
+        bubble.addEventListener("pointerdown",event=>{
+          if(messageSelectionMode || message.type==="deleted" || event.target.closest("button,a,audio,input")) return;
+          swipeStartX=event.clientX;swipeStartY=event.clientY;swipePointerId=event.pointerId;swipeMoved=false;
+          bubble.classList.add("reply-swiping");
+        });
+        bubble.addEventListener("pointermove",event=>{
+          if(swipePointerId!==event.pointerId) return;
+          const dx=event.clientX-swipeStartX,dy=event.clientY-swipeStartY;
+          if(Math.abs(dx)>Math.abs(dy)*1.25 && dx>8){
+            swipeMoved=true;bubble.style.transform=`translateX(${Math.min(dx,76)}px)`;
+            bubble.classList.toggle("reply-swipe-ready",dx>=52);
+          }
+        });
+        const finishSwipe=event=>{
+          if(swipePointerId!==event.pointerId)return;
+          const dx=event.clientX-swipeStartX,dy=event.clientY-swipeStartY;
+          bubble.style.transform="";bubble.classList.remove("reply-swiping","reply-swipe-ready");
+          if(swipeMoved && dx>=52 && Math.abs(dy)<70 && !messageSelectionMode && message.type!=="deleted"){
+            setReplyTarget({id:item.id,text:(message.text||message.fileName||"Attachment").slice(0,180),senderName:message.senderId===currentUser.uid?"You":(selectedUser?.name||"Friend")});
+          }
+          swipePointerId=null;swipeMoved=false;
+        };
+        bubble.addEventListener("pointerup",finishSwipe);
+        bubble.addEventListener("pointercancel",event=>{if(swipePointerId===event.pointerId){bubble.style.transform="";bubble.classList.remove("reply-swiping","reply-swipe-ready");swipePointerId=null;swipeMoved=false;}});
         bubble.addEventListener("contextmenu", event=>{
           if(messageSelectionMode || message.type==="deleted") return;
           event.preventDefault();setReplyTarget({id:item.id,text:(message.text||message.fileName||"Attachment").slice(0,180),senderName:message.senderId===currentUser.uid?"You":(selectedUser?.name||"Friend")});
         });
-        // WhatsApp-style light right-swipe on a message to reply.
-        // Keep long-press reaction/selection behavior unchanged.
-        let replySwipeStart=null;
-        bubble.addEventListener("pointerdown", event=>{
-          if(event.pointerType!=="touch" || messageSelectionMode || message.type==="deleted" || event.target.closest("button,a,audio,input")) return;
-          replySwipeStart={x:event.clientX,y:event.clientY};
-        }, {passive:true});
-        bubble.addEventListener("pointerup", event=>{
-          if(!replySwipeStart) return;
-          const dx=event.clientX-replySwipeStart.x, dy=event.clientY-replySwipeStart.y;
-          replySwipeStart=null;
-          if(dx>48 && Math.abs(dx)>Math.abs(dy)*1.25 && !messageSelectionMode && message.type!=="deleted") {
-            setReplyTarget({id:item.id,text:(message.text||message.fileName||"Attachment").slice(0,180),senderName:message.senderId===currentUser.uid?"You":(selectedUser?.name||"Friend")});
-            bubble.classList.remove("reply-swipe-active");
-            void bubble.offsetWidth;
-            bubble.classList.add("reply-swipe-active");
-            setTimeout(()=>bubble.classList.remove("reply-swipe-active"),260);
-          }
-        }, {passive:true});
-        bubble.addEventListener("pointercancel",()=>{replySwipeStart=null;},{passive:true});
         if (message.type === "deleted") {
           const deletedText = document.createElement("div");
           deletedText.textContent = "🚫 This message was deleted";
@@ -1717,9 +1703,11 @@ function openChat(friend, isSecret = false) {
         if (message.senderId === currentUser.uid) {
           const tick = document.createElement("span");
 
-          tick.textContent = message.readAt ? " ✓✓" : (message.deliveredAt ? " ✓✓" : " ✓");
+          tick.textContent =
+            message.readAt ? " ✓✓" : " ✓";
 
-          tick.style.color = message.readAt ? "#53b7ff" : "#9aa6c2";
+          tick.style.color =
+            message.readAt ? "#53b7ff" : "#9aa6c2";
 
           time.appendChild(tick);
         }
