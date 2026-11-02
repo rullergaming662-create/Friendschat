@@ -1682,22 +1682,13 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
           if (grouped.size) reactionArea.appendChild(reactionList);
 
           // Quick reaction bar: six common emoji + a plus button for the full emoji list.
-          const reactButton = document.createElement("button");
-          reactButton.type = "button";
-          reactButton.className = "reaction-trigger";
-          reactButton.textContent = "☺ React";
-          reactButton.setAttribute("aria-label", "Add emoji reaction");
-          reactButton.style.cssText = "padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--panel) 82%,var(--primary));color:var(--text);font-size:12px;border:1px solid var(--line)";
           const quickbar = document.createElement("div"); quickbar.className = "reaction-quickbar hidden";
           const quickChoices = ["👍","❤️","😂","😮","😢","🙏"];
           const applyReaction = async emoji => {
             try {
               await updateDoc(doc(db,"chats",chatId,"messages",item.id), {[`reactions.${currentUser.uid}`]:emoji});
               quickbar.classList.add("hidden"); picker.classList.add("hidden"); reactionArea.classList.remove("reaction-open");
-            } catch(err) {
-              console.error("Reaction update failed:", err);
-              alert("Reaction save nahi hua: " + friendlyError(err));
-            }
+            } catch(err) { alert("Reaction update failed: " + friendlyError(err)); }
           };
           quickChoices.forEach(emoji=>{
             const b=document.createElement("button"); b.type="button"; b.className="reaction-quick"; b.textContent=emoji;
@@ -1705,7 +1696,6 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             b.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();applyReaction(emoji);});
             quickbar.appendChild(b);
           });
-          reactionArea.appendChild(reactButton);
           const plus=document.createElement("button"); plus.type="button"; plus.className="reaction-quick plus"; plus.textContent="+"; plus.setAttribute("aria-label","More emoji");
           quickbar.appendChild(plus); reactionArea.appendChild(quickbar);
 
@@ -1728,7 +1718,6 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
           };
-          reactButton.addEventListener("click", openPicker);
           // Long-press on either sent or received message opens reactions.
           // Avoid relying on event.target because it may be nested text/media.
           bubble.addEventListener("message-longpress", event => {
@@ -1769,16 +1758,10 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
           message.receiverId === currentUser.uid &&
           !message.readAt
         ) {
-          // Receiver marks the incoming message as read. The sender's live
-          // snapshot observes readAt and renders the blue double tick.
           updateDoc(
             doc(db, "chats", chatId, "messages", item.id),
             { readAt: serverTimestamp() }
-          ).catch(err => {
-            console.error("Read receipt update failed:", err);
-            // A rules-denied update cannot be repaired from client HTML; keep
-            // the failure visible in the console for accurate Firebase Rules fixes.
-          });
+          ).catch(console.error);
         }
       });
 
@@ -1934,7 +1917,7 @@ $("messageForm").addEventListener("submit", async e => {
     }
   } catch (err) {
     console.error("Message send failed:", err);
-    alert("Message send nahi hua: " + friendlyError(err) + "\n\nAgar permission-denied aa raha hai, Firebase Firestore Rules mein chats/messages ke create aur readAt/reactions update permissions check karne honge.");
+    alert("Message send nahi hua: " + friendlyError(err));
     input.value = oldText;
   } finally {
     messageSendInProgress = false;
