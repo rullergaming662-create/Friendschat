@@ -1428,7 +1428,7 @@ function cleanupChat() {
 
 /* WhatsApp-style message selection and deletion */
 function updateMessageSelectionUI() {
-  const hasSelection = messageSelectionMode && selectedMessageIds.size > 0;
+  const hasSelection = selectedMessageIds.size > 0;
   $("messageDeleteMenuBtn").classList.toggle("hidden", !hasSelection);
   document.querySelectorAll("#messages [data-message-id]").forEach(el => {
     const selected = selectedMessageIds.has(el.dataset.messageId);
@@ -1627,7 +1627,8 @@ function openChat(friend, isSecret = false) {
           holdTriggered = false;
           holdTimer = setTimeout(() => {
             holdTriggered = true;
-            startMessageSelection();
+            // Long press selects this single message for the top delete action,
+            // while also opening its emoji reaction bar (WhatsApp-like behavior).
             selectedMessageIds.clear();
             selectedMessageIds.add(item.id);
             updateMessageSelectionUI();
@@ -1823,7 +1824,7 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
 });
 
         // Double-tap a message to open the emoji reaction picker.
-        if (message.type !== "deleted" && !messageSelectionMode) {
+        if (message.type !== "deleted") {
           const reactionArea = document.createElement("div");
           reactionArea.className = "reaction-area";
           const reactionList = document.createElement("div");
@@ -1884,7 +1885,7 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
           };
-          // Long-press on either sent or received message opens reactions.
+          // Long-press on a message opens reactions and reveals the top delete icon.
           // Avoid relying on event.target because it may be nested text/media.
           bubble.addEventListener("message-longpress", event => {
             event.preventDefault?.();
