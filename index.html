@@ -432,6 +432,16 @@ button {
 .reaction-details-user .avatar{width:42px;height:42px;flex:0 0 42px}
 .reaction-details-user-name{flex:1;font-weight:600}
 .reaction-details-user-emoji{font-size:23px}
+
+.voice-recorder-bar{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:5px 8px;background:var(--panel);border-radius:28px}
+.voice-recorder-bar.hidden{display:none!important}
+.voice-recorder-bar button{border-radius:50%;min-width:44px;height:44px;padding:8px;font-weight:700}
+#voiceDiscardBtn{background:#ffe8ed;color:#c81745}#voicePauseBtn{background:#eef0f5;color:#172033;border-radius:24px;white-space:nowrap}#voiceSendBtn{background:#079bd7;color:#fff;font-size:20px}
+#voiceTimer{font-variant-numeric:tabular-nums;min-width:36px;font-size:15px}
+.voice-wave{height:42px;flex:1;min-width:30px;display:flex;align-items:center;justify-content:center;gap:3px;overflow:hidden}
+.voice-wave i{display:block;width:3px;min-height:5px;background:#079bd7;border-radius:5px;animation:voicePulse .7s ease-in-out infinite alternate}
+.voice-wave.paused i{animation-play-state:paused;opacity:.45}
+@keyframes voicePulse{from{transform:scaleY(.35)}to{transform:scaleY(1)}}
 </style>
 </head>
 
@@ -557,6 +567,7 @@ button {
   </div>
   <input id="photoInput" type="file" accept="image/*" hidden><input id="audioInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.webm" hidden><input id="fileInput" type="file" hidden><input id="documentInput" type="file" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,application/pdf" hidden>
   <button id="voiceRecordBtn" class="secondary" type="button" title="Record voice message" aria-label="Record voice message">🎙</button>
+  <div id="voiceRecorderBar" class="voice-recorder-bar hidden"><button id="voiceDiscardBtn" type="button" aria-label="Discard recording">🗑</button><span id="voiceTimer">0:00</span><div class="voice-wave" id="voiceWave" aria-label="Recording waveform"></div><button id="voicePauseBtn" type="button">Ⅱ Pause</button><button id="voiceSendBtn" type="button" aria-label="Send voice message">➤</button></div>
   <input id="messageInput"
     type="text"
     maxlength="4000"
@@ -1740,12 +1751,22 @@ $("messageInput").addEventListener("input",()=>{updateTyping(true);clearTimeout(
 let typingUnsubscribe=null;
 const originalOpenChat=typeof openChat==="function"?openChat:null;
 
-let mediaRecorder=null,recordedChunks=[];
-$("voiceRecordBtn").addEventListener("click",async()=>{
- if(mediaRecorder&&mediaRecorder.state==="recording"){mediaRecorder.stop();$("voiceRecordBtn").textContent="🎙";$("voiceRecordBtn").title="Record voice message";return;}
- if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){alert("Voice recording is not supported in this browser. Use the Audio attachment option instead.");return;}
- try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});const options=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?{mimeType:"audio/webm;codecs=opus"}:{};mediaRecorder=new MediaRecorder(stream,options);recordedChunks=[];mediaRecorder.ondataavailable=e=>{if(e.data.size)recordedChunks.push(e.data);};mediaRecorder.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(recordedChunks,{type:mediaRecorder.mimeType||"audio/webm"});if(blob.size>950*1024){alert("Voice message is over 950 KB. Please record a shorter message.");return;}const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob);});selectedAttachment={type:"audio",name:"voice-message.webm",mimeType:blob.type||"audio/webm",data:dataUrl};selectedImageFile=null;selectedImageData=dataUrl;$("imagePreview").classList.add("hidden");$("imagePreviewName").textContent="🎙 Voice message ready to send";$("imagePreviewWrap").classList.remove("hidden");};mediaRecorder.start();$("voiceRecordBtn").textContent="⏹";$("voiceRecordBtn").title="Stop recording";}catch(err){alert("Microphone access nahi mila. Browser settings mein permission allow karein.");console.error(err);}
-});
+let mediaRecorder=null,recordedChunks=[],voiceStream=null,voiceTimerInterval=null,voiceStartedAt=0,voiceElapsed=0,voicePaused=false;
+const voiceBar=$("voiceRecorderBar"),voiceTimer=$("voiceTimer"),voiceWave=$("voiceWave");
+voiceWave.innerHTML=Array.from({length:28},(_,i)=>`<i style="height:${8+(i*17%31)}px;animation-delay:${(i%7)*.08}s"></i>`).join("");
+function formatVoiceTime(ms){const n=Math.floor(ms/1000);return `${Math.floor(n/60)}:${String(n%60).padStart(2,"0")}`;}
+function updateVoiceTimer(){voiceTimer.textContent=formatVoiceTime(voiceElapsed+(voicePaused?0:Date.now()-voiceStartedAt));}
+function stopVoiceTimer(){clearInterval(voiceTimerInterval);voiceTimerInterval=null;}
+function resetVoiceUI(){stopVoiceTimer();voiceBar.classList.add("hidden");$("voiceRecordBtn").classList.remove("hidden");voicePaused=false;voiceElapsed=0;voiceTimer.textContent="0:00";voiceWave.classList.remove("paused");}
+async function beginVoiceRecording(){
+ if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){alert("Voice recording is not supported in this browser.");return;}
+ try{voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});const options=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?{mimeType:"audio/webm;codecs=opus"}:{};mediaRecorder=new MediaRecorder(voiceStream,options);recordedChunks=[];mediaRecorder.ondataavailable=e=>{if(e.data.size)recordedChunks.push(e.data);};mediaRecorder.start();voiceStartedAt=Date.now();voiceElapsed=0;voicePaused=false;$("voiceRecordBtn").classList.add("hidden");voiceBar.classList.remove("hidden");voiceTimerInterval=setInterval(updateVoiceTimer,200);}catch(err){alert("Microphone access nahi mila. Browser settings mein permission allow karein.");console.error(err);}
+}
+function finalizeVoiceRecording(){return new Promise(resolve=>{if(!mediaRecorder){resolve(null);return;}const recorder=mediaRecorder;recorder.onstop=async()=>{if(voiceStream)voiceStream.getTracks().forEach(t=>t.stop());voiceStream=null;const blob=new Blob(recordedChunks,{type:recorder.mimeType||"audio/webm"});resetVoiceUI();if(!blob.size||blob.size>950*1024){if(blob.size>950*1024)alert("Voice message 950 KB se bada hai. Thoda chhota record karein.");resolve(null);return;}const dataUrl=await new Promise((res,rej)=>{const reader=new FileReader();reader.onload=()=>res(reader.result);reader.onerror=rej;reader.readAsDataURL(blob);});resolve({type:"audio",name:"voice-message.webm",mimeType:blob.type||"audio/webm",data:dataUrl});};if(recorder.state!=="inactive")recorder.stop();else resolve(null);});}
+$("voiceRecordBtn").addEventListener("click",beginVoiceRecording);
+$("voicePauseBtn").addEventListener("click",()=>{if(!mediaRecorder)return;if(!voicePaused&&mediaRecorder.state==="recording"){mediaRecorder.pause();voiceElapsed+=Date.now()-voiceStartedAt;voicePaused=true;voiceWave.classList.add("paused");$("voicePauseBtn").textContent="▶ Resume";stopVoiceTimer();}else if(voicePaused&&mediaRecorder.state==="paused"){mediaRecorder.resume();voiceStartedAt=Date.now();voicePaused=false;voiceWave.classList.remove("paused");$("voicePauseBtn").textContent="Ⅱ Pause";voiceTimerInterval=setInterval(updateVoiceTimer,200);}});
+$("voiceDiscardBtn").addEventListener("click",()=>{if(mediaRecorder&&mediaRecorder.state!=="inactive")mediaRecorder.stop();if(voiceStream)voiceStream.getTracks().forEach(t=>t.stop());voiceStream=null;mediaRecorder=null;recordedChunks=[];resetVoiceUI();});
+$("voiceSendBtn").addEventListener("click",async()=>{const attachment=await finalizeVoiceRecording();if(!attachment)return;selectedAttachment=attachment;selectedImageFile=null;selectedImageData=attachment.data;$ ("imagePreview").classList.add("hidden");$("imagePreviewName").textContent="🎙 Voice message ready to send";$("imagePreviewWrap").classList.remove("hidden");$("messageForm").requestSubmit();});
 
 /* Attachment picker: photo, video, file or document */
 const attachBtn = $("attachBtn"), attachMenu = $("attachMenu");
