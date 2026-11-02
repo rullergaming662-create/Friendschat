@@ -434,6 +434,8 @@ button {
 .reaction-emoji:hover,.reaction-emoji:focus-visible{background:color-mix(in srgb,var(--primary) 20%,var(--panel));outline:1px solid var(--primary)}
 .reaction-picker-label{font-size:11px;color:var(--muted);padding:0 2px}
 .bubble{touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.bubble .reaction-area{pointer-events:auto}
+.bubble .reaction-quickbar,.bubble .reaction-picker{touch-action:manipulation}
 @media(max-width:650px){.reaction-picker{width:min(300px,82vw)}.reaction-emoji-grid{max-height:190px}.reaction-emoji{font-size:22px}}
 
 
@@ -1478,26 +1480,45 @@ function openChat(friend, isSecret = false) {
         bubble.dataset.senderId = message.senderId || "";
         bubble.dataset.deleted = String(message.type === "deleted");
         if (messageSelectionMode) bubble.classList.add("selectable");
-        // Long-press selects messages for multi-message deletion.
+        // Reliable long-press handling for both sent and received messages.
+        // Pointer events cover modern browsers; contextmenu is a fallback for
+        // Android browsers that invoke the native long-press menu.
         let holdTimer = null;
         let holdTriggered = false;
-        bubble.addEventListener("pointerdown", event => {
-          if (event.target.closest("a,button,audio,input")) return;
-          holdTriggered = false;
-          holdTimer = setTimeout(() => {
-            holdTriggered = true;
-            if (message.type !== "deleted" && messageSelectionMode) {
-              toggleMessageSelection(item.id);
-            } else if (message.type !== "deleted") {
-              bubble.dispatchEvent(new CustomEvent("message-longpress", {bubbles:false}));
-            }
-          }, 550);
-        });
+        let holdStartX = 0;
+        let holdStartY = 0;
+        const triggerMessageHold = () => {
+          if (message.type === "deleted") return;
+          holdTriggered = true;
+          if (messageSelectionMode) {
+            toggleMessageSelection(item.id);
+          } else {
+            bubble.dispatchEvent(new CustomEvent("message-longpress", {bubbles:false}));
+          }
+        };
         const cancelHold = () => {
           if (holdTimer) clearTimeout(holdTimer);
           holdTimer = null;
         };
+        bubble.addEventListener("pointerdown", event => {
+          if (event.target.closest("a,button,audio,input")) return;
+          if (event.pointerType === "mouse" && event.button !== 0) return;
+          cancelHold();
+          holdTriggered = false;
+          holdStartX = event.clientX;
+          holdStartY = event.clientY;
+          holdTimer = setTimeout(triggerMessageHold, 500);
+        });
+        bubble.addEventListener("pointermove", event => {
+          if (holdTimer && (Math.abs(event.clientX-holdStartX)>12 || Math.abs(event.clientY-holdStartY)>12)) cancelHold();
+        });
         ["pointerup", "pointercancel", "pointerleave"].forEach(type => bubble.addEventListener(type, cancelHold));
+        bubble.addEventListener("contextmenu", event => {
+          if (event.target.closest("a,button,audio,input")) return;
+          event.preventDefault();
+          cancelHold();
+          triggerMessageHold();
+        });
         bubble.addEventListener("click", event => {
           if (holdTriggered) { event.preventDefault(); event.stopPropagation(); holdTriggered = false; return; }
           if (messageSelectionMode && !event.target.closest("button,a,audio")) {
