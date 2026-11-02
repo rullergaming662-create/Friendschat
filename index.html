@@ -411,13 +411,13 @@ button {
 .reaction-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid color-mix(in srgb,var(--primary) 38%,var(--line));background:color-mix(in srgb,var(--panel) 82%,var(--primary));color:var(--text);border-radius:999px;padding:4px 9px;font-size:15px;line-height:1.25}
 .reaction-chip.mine-reaction{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 18%,var(--panel))}
 .reaction-count{font-size:11px;color:var(--muted);font-weight:700}
-.reaction-quickbar{position:absolute;z-index:110;left:0;top:100%;bottom:auto;margin-top:8px;display:flex;align-items:center;gap:4px;padding:7px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 10px 28px #0005;white-space:nowrap}
+.reaction-quickbar{position:fixed;z-index:99999;left:0;top:0;bottom:auto;margin-top:0;display:flex;align-items:center;gap:4px;padding:7px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 10px 28px #0005;white-space:nowrap}
 .bubble.mine .reaction-quickbar{left:auto;right:0}
 .reaction-quickbar.hidden{display:none}
 .reaction-quick{width:34px;height:34px;border:0;border-radius:50%;background:transparent;font-size:22px;display:grid;place-items:center;padding:0}
 .reaction-quick:hover,.reaction-quick:focus-visible{background:color-mix(in srgb,var(--primary) 20%,var(--panel));outline:1px solid var(--primary)}
 .reaction-quick.plus{font-size:20px;font-weight:700;background:color-mix(in srgb,var(--primary) 17%,var(--panel));color:var(--text)}
-.reaction-picker{position:absolute;z-index:120;left:0;top:100%;bottom:auto;margin-top:8px;width:min(310px,78vw);padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 36px #0005;display:flex;flex-direction:column;gap:8px}
+.reaction-picker{position:fixed;z-index:100000;left:0;top:0;bottom:auto;margin-top:0;width:min(310px,78vw);padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 36px #0005;display:flex;flex-direction:column;gap:8px}
 .bubble.mine .reaction-picker{left:auto;right:0}
 .reaction-picker.hidden{display:none}
 .reaction-picker-search{width:100%;margin:0;padding:9px 11px;border-radius:11px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:14px;outline:none}
@@ -1672,17 +1672,15 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
           };
           drawEmoji();
           picker.appendChild(grid); reactionArea.appendChild(picker);
-          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");if(!picker.classList.contains("hidden"))positionReactionPopup(picker);});
-          const positionReactionPopup = popup => {
-            const rect = bubble.getBoundingClientRect();
-            const width = popup.offsetWidth || 250;
-            const height = popup.offsetHeight || 48;
-            const left = Math.max(8, Math.min(window.innerWidth - width - 8, rect.left + rect.width / 2 - width / 2));
-            let top = rect.top - height - 10;
-            if (top < 8) top = Math.min(window.innerHeight - height - 8, rect.bottom + 10);
-            popup.style.left = left + "px";
-            popup.style.top = Math.max(8, top) + "px";
-          };
+          plus.addEventListener("click",ev=>{
+            ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");
+            if(!picker.classList.contains("hidden")) requestAnimationFrame(()=>{
+              const r=bubble.getBoundingClientRect(), p=picker.getBoundingClientRect(), m=8;
+              const left=Math.max(m,Math.min(window.innerWidth-p.width-m,r.left+(r.width-p.width)/2));
+              const top=r.top>=p.height+12?r.top-p.height-12:Math.min(window.innerHeight-p.height-m,r.bottom+12);
+              picker.style.left=left+"px";picker.style.top=Math.max(m,top)+"px";
+            });
+          });
           const openPicker=event=>{
             if(event){event.preventDefault();event.stopPropagation();}
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
@@ -1698,6 +1696,22 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             });
             picker.classList.add("hidden");
             quickbar.classList.remove("hidden");
+            // Float the reaction bar above the selected bubble, in the viewport
+            // layer so adjacent bubbles cannot cover it.
+            requestAnimationFrame(() => {
+              const bubbleRect = bubble.getBoundingClientRect();
+              const barRect = quickbar.getBoundingClientRect();
+              const margin = 10;
+              const left = Math.max(8, Math.min(
+                window.innerWidth - barRect.width - 8,
+                bubbleRect.left + (bubbleRect.width - barRect.width) / 2
+              ));
+              const top = bubbleRect.top >= barRect.height + margin
+                ? bubbleRect.top - barRect.height - margin
+                : Math.min(window.innerHeight - barRect.height - 8, bubbleRect.bottom + margin);
+              quickbar.style.left = left + "px";
+              quickbar.style.top = Math.max(8, top) + "px";
+            });
           });
           // Keep double-tap support too.
           bubble.addEventListener("dblclick", event => {
