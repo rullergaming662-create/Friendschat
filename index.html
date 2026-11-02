@@ -436,7 +436,14 @@ button {
 .voice-recorder-bar{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:5px 8px;background:var(--panel);border-radius:28px}
 .voice-recorder-bar.hidden{display:none!important}
 .voice-recorder-bar button{border-radius:50%;min-width:44px;height:44px;padding:8px;font-weight:700}
-#voiceDiscardBtn{background:#ffe8ed;color:#c81745}#voicePauseBtn{background:#eef0f5;color:#172033;border-radius:24px;white-space:nowrap}#voiceSendBtn{background:#079bd7;color:#fff;font-size:20px}
+#voiceDiscardBtn{background:#ffe8ed;color:#c81745;flex:0 0 48px;width:48px;height:48px;display:grid;place-items:center}
+#voicePauseBtn{background:#eef0f5;color:#172033;border-radius:24px;white-space:nowrap}
+#voiceSendBtn{background:#079bd7;color:#fff;flex:0 0 52px;width:52px;height:52px;display:grid;place-items:center;box-shadow:0 2px 5px #079bd733}
+.voice-icon{width:24px;height:24px;display:block;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#voiceRecordBtn{background:#079bd7;color:#fff;border:0;border-radius:50%;width:54px;height:54px;min-width:54px;padding:0;display:grid;place-items:center;box-shadow:0 2px 5px #079bd733}
+#sendBtn{border-radius:50%;width:54px;height:54px;min-width:54px;padding:0;display:grid;place-items:center}
+#sendBtn .voice-icon{width:25px;height:25px}
+
 #voiceTimer{font-variant-numeric:tabular-nums;min-width:36px;font-size:15px}
 .voice-wave{height:42px;flex:1;min-width:30px;display:flex;align-items:center;justify-content:center;gap:3px;overflow:hidden}
 .voice-wave i{display:block;width:3px;min-height:5px;background:#079bd7;border-radius:5px;animation:voicePulse .7s ease-in-out infinite alternate}
@@ -566,15 +573,15 @@ button {
     </div>
   </div>
   <input id="photoInput" type="file" accept="image/*" hidden><input id="audioInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.webm" hidden><input id="fileInput" type="file" hidden><input id="documentInput" type="file" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,application/pdf" hidden>
-  <button id="voiceRecordBtn" class="secondary" type="button" title="Record voice message" aria-label="Record voice message">🎙</button>
-  <div id="voiceRecorderBar" class="voice-recorder-bar hidden"><button id="voiceDiscardBtn" type="button" aria-label="Discard recording">🗑</button><span id="voiceTimer">0:00</span><div class="voice-wave" id="voiceWave" aria-label="Recording waveform"></div><button id="voicePauseBtn" type="button">Ⅱ Pause</button><button id="voiceSendBtn" type="button" aria-label="Send voice message">➤</button></div>
+  <button id="voiceRecordBtn" class="secondary" type="button" title="Record voice message" aria-label="Record voice message"><svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" fill="currentColor" stroke="none"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg></button>
+  <div id="voiceRecorderBar" class="voice-recorder-bar hidden"><button id="voiceDiscardBtn" type="button" aria-label="Discard recording" title="Delete recording"><svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2m-9 0 1 14h10l1-14M10 10v6m4-6v6"/></svg></button><span id="voiceTimer">0:00</span><div class="voice-wave" id="voiceWave" aria-label="Recording waveform"></div><button id="voicePauseBtn" type="button">Ⅱ Pause</button><button id="voiceSendBtn" type="button" aria-label="Send voice message" title="Send voice message"><svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3 10.5 21l-2-7.5L21 3Z" fill="currentColor" stroke="none"/><path d="M8.5 13.5 21 3"/></svg></button></div>
   <input id="messageInput"
     type="text"
     maxlength="4000"
     placeholder="Type a message..."
     autocomplete="off">
 
-  <button id="sendBtn" class="primary" type="submit">➤</button>
+  <button id="sendBtn" class="primary" type="submit" aria-label="Send message" title="Send message"><svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3 10.5 21l-2-7.5L21 3Z" fill="currentColor" stroke="none"/><path d="M8.5 13.5 21 3"/></svg></button>
 </form>
 
 </div>
