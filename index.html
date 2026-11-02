@@ -481,24 +481,6 @@ button {
 .composer #sendBtn svg{width:26px;height:26px;color:#fff}
 .composer #sendBtn:active{transform:scale(.94);filter:brightness(.96)}
 .composer .attach-button:active{transform:scale(.94)}
-/* Normalize composer controls so attachment, microphone and send are perfectly aligned. */
-.composer{align-items:center;gap:10px}
-.composer .attach-wrap{width:56px;height:56px;flex:0 0 56px;align-items:center;justify-content:center}
-.composer .attach-button,
-.composer #voiceRecordBtn,
-.composer #sendBtn{
-  box-sizing:border-box!important;
-  width:56px!important;height:56px!important;min-width:56px!important;max-width:56px!important;
-  flex:0 0 56px!important;margin:0!important;padding:0!important;
-  border-radius:50%!important;display:grid!important;place-items:center!important;
-  align-self:center!important;line-height:1!important;overflow:hidden;
-}
-.composer .attach-button{background:color-mix(in srgb,var(--panel) 48%,transparent)!important;color:var(--text)!important;border:1.5px solid color-mix(in srgb,var(--text) 25%,transparent)!important;box-shadow:inset 0 1px 0 #ffffff70,0 5px 16px #64748b18!important;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.composer #voiceRecordBtn{background:#079bd7!important;color:#fff!important;border:1px solid #ffffff45!important;box-shadow:inset 0 1px 0 #ffffff55,0 5px 14px #079bd733!important}
-.composer #sendBtn{background:color-mix(in srgb,var(--primary) 88%,transparent)!important;color:#fff!important;border:1px solid #ffffff65!important;box-shadow:inset 0 1px 0 #ffffff55,0 7px 18px color-mix(in srgb,var(--primary) 22%,transparent)!important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.composer .attach-button svg,.composer #voiceRecordBtn svg,.composer #sendBtn svg{width:27px!important;height:27px!important;min-width:27px!important;max-width:27px!important;display:block!important;margin:0!important}
-.composer #sendBtn svg{transform:translateX(-1px)}
-.composer #messageInput{align-self:center;min-height:56px;box-sizing:border-box}
 @media(prefers-reduced-motion:reduce){.composer #sendBtn,.composer .attach-button{transition:none}}
 
 </style>
@@ -626,14 +608,14 @@ button {
   </div>
   <input id="photoInput" type="file" accept="image/*" hidden><input id="audioInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.aac,.webm" hidden><input id="fileInput" type="file" hidden><input id="documentInput" type="file" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,application/pdf" hidden>
   <button id="voiceRecordBtn" class="secondary" type="button" title="Record voice message" aria-label="Record voice message"><svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" fill="currentColor" stroke="none"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg></button>
-  <div id="voiceRecorderBar" class="voice-recorder-bar hidden"><button id="voiceDiscardBtn" type="button" aria-label="Discard recording" title="Delete recording"><svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2m-9 0 1 14h10l1-14M10 10v6m4-6v6"/></svg></button><span id="voiceTimer">0:00</span><div class="voice-wave" id="voiceWave" aria-label="Recording waveform"></div><button id="voicePauseBtn" type="button">Ⅱ Pause</button><button id="voiceSendBtn" type="button" aria-label="Send voice message" title="Send voice message"><svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 9.4 14.6 7.1 22l4.2-5.1L22 2Z" fill="currentColor" stroke="none"/><path d="M9.4 14.6 22 2" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg></button></div>
+  <div id="voiceRecorderBar" class="voice-recorder-bar hidden"><button id="voiceDiscardBtn" type="button" aria-label="Discard recording" title="Delete recording"><svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2m-9 0 1 14h10l1-14M10 10v6m4-6v6"/></svg></button><span id="voiceTimer">0:00</span><div class="voice-wave" id="voiceWave" aria-label="Recording waveform"></div><button id="voicePauseBtn" type="button">Ⅱ Pause</button><button id="voiceSendBtn" type="button" aria-label="Send voice message" title="Send voice message"><svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3 10.5 21l-2-7.5L21 3Z" fill="currentColor" stroke="none"/><path d="M8.5 13.5 21 3"/></svg></button></div>
   <input id="messageInput"
     type="text"
     maxlength="4000"
     placeholder="Type a message..."
     autocomplete="off">
 
-  <button id="sendBtn" class="primary" type="submit" aria-label="Send message" title="Send message"><svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 9.4 14.6 7.1 22l4.2-5.1L22 2Z" fill="currentColor" stroke="none"/><path d="M9.4 14.6 22 2" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg></button>
+  <button id="sendBtn" class="primary" type="submit" aria-label="Send message" title="Send message"><svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3 10.5 21l-2-7.5L21 3Z" fill="currentColor" stroke="none"/><path d="M8.5 13.5 21 3"/></svg></button>
 </form>
 
 </div>
