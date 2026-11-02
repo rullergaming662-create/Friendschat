@@ -481,6 +481,9 @@ button {
 .composer #sendBtn svg{width:26px;height:26px;color:#fff}
 .composer #sendBtn:active{transform:scale(.94);filter:brightness(.96)}
 .composer .attach-button:active{transform:scale(.94)}
+/* Composer action swaps between mic (empty) and send (typed/attached content). */
+#voiceRecordBtn.hidden,#sendBtn.hidden{display:none!important}
+#voiceRecordBtn,#sendBtn{flex:0 0 56px}
 /* Normalize composer controls so attachment, microphone and send are perfectly aligned. */
 .composer{align-items:center;gap:10px}
 .composer .attach-wrap{width:56px;height:56px;flex:0 0 56px;align-items:center;justify-content:center}
@@ -1817,6 +1820,15 @@ function formatVoiceTime(ms){const n=Math.floor(ms/1000);return `${Math.floor(n/
 function updateVoiceTimer(){voiceTimer.textContent=formatVoiceTime(voiceElapsed+(voicePaused?0:Date.now()-voiceStartedAt));}
 function stopVoiceTimer(){clearInterval(voiceTimerInterval);voiceTimerInterval=null;}
 function resetVoiceUI(){stopVoiceTimer();$("messageForm").classList.remove("recording");voiceBar.classList.add("hidden");$("voiceRecordBtn").classList.remove("hidden");voicePaused=false;voiceElapsed=0;voiceTimer.textContent="0:00";voiceWave.classList.remove("paused");}
+function syncComposerAction(){
+ const input=$("messageInput");
+ const hasContent=!!(input.value.trim()||selectedAttachment||selectedImageData);
+ const isRecording=$("messageForm").classList.contains("recording");
+ $("voiceRecordBtn").classList.toggle("hidden",hasContent||isRecording);
+ $("sendBtn").classList.toggle("hidden",!hasContent||isRecording);
+}
+$("messageInput").addEventListener("input",syncComposerAction);
+syncComposerAction();
 async function beginVoiceRecording(){
  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){alert("Voice recording is not supported in this browser.");return;}
  try{voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});const options=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?{mimeType:"audio/webm;codecs=opus"}:{};mediaRecorder=new MediaRecorder(voiceStream,options);recordedChunks=[];mediaRecorder.ondataavailable=e=>{if(e.data.size)recordedChunks.push(e.data);};mediaRecorder.start();voiceStartedAt=Date.now();voiceElapsed=0;voicePaused=false;$("voiceRecordBtn").classList.add("hidden");$("messageForm").classList.add("recording");voiceBar.classList.remove("hidden");voiceTimerInterval=setInterval(updateVoiceTimer,200);}catch(err){alert("Microphone access nahi mila. Browser settings mein permission allow karein.");console.error(err);}
@@ -1825,7 +1837,7 @@ function finalizeVoiceRecording(){return new Promise(resolve=>{if(!mediaRecorder
 $("voiceRecordBtn").addEventListener("click",beginVoiceRecording);
 $("voicePauseBtn").addEventListener("click",()=>{if(!mediaRecorder)return;if(!voicePaused&&mediaRecorder.state==="recording"){mediaRecorder.pause();voiceElapsed+=Date.now()-voiceStartedAt;voicePaused=true;voiceWave.classList.add("paused");$("voicePauseBtn").textContent="▶ Resume";stopVoiceTimer();}else if(voicePaused&&mediaRecorder.state==="paused"){mediaRecorder.resume();voiceStartedAt=Date.now();voicePaused=false;voiceWave.classList.remove("paused");$("voicePauseBtn").textContent="Ⅱ Pause";voiceTimerInterval=setInterval(updateVoiceTimer,200);}});
 $("voiceDiscardBtn").addEventListener("click",()=>{if(mediaRecorder&&mediaRecorder.state!=="inactive")mediaRecorder.stop();if(voiceStream)voiceStream.getTracks().forEach(t=>t.stop());voiceStream=null;mediaRecorder=null;recordedChunks=[];resetVoiceUI();});
-$("voiceSendBtn").addEventListener("click",async()=>{const attachment=await finalizeVoiceRecording();if(!attachment)return;selectedAttachment=attachment;selectedImageFile=null;selectedImageData=attachment.data;$ ("imagePreview").classList.add("hidden");$("imagePreviewName").textContent="🎙 Voice message ready to send";$("imagePreviewWrap").classList.remove("hidden");$("messageForm").requestSubmit();});
+$("voiceSendBtn").addEventListener("click",async()=>{const attachment=await finalizeVoiceRecording();if(!attachment)return;selectedAttachment=attachment;selectedImageFile=null;selectedImageData=attachment.data;syncComposerAction();$ ("imagePreview").classList.add("hidden");$("imagePreviewName").textContent="🎙 Voice message ready to send";$("imagePreviewWrap").classList.remove("hidden");$("messageForm").requestSubmit();});
 
 /* Attachment picker: photo, video, file or document */
 const attachBtn = $("attachBtn"), attachMenu = $("attachMenu");
@@ -1893,6 +1905,7 @@ $("messageForm").addEventListener("submit", async e => {
     await addDoc(collection(db, "chats", chatId, "messages"), payload);
     input.value = "";
     clearSelectedImage();
+    syncComposerAction();
     clearReplyTarget();
 
     // Best-effort recent chat updates. Firestore rules may independently
