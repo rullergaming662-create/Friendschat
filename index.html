@@ -413,14 +413,14 @@ button {
 .reaction-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid color-mix(in srgb,var(--primary) 38%,var(--line));background:color-mix(in srgb,var(--panel) 82%,var(--primary));color:var(--text);border-radius:999px;padding:4px 9px;font-size:15px;line-height:1.25}
 .reaction-chip.mine-reaction{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 18%,var(--panel))}
 .reaction-count{font-size:11px;color:var(--muted);font-weight:700}
-.reaction-quickbar{position:absolute;z-index:110;left:0;top:100%;bottom:auto;margin-top:8px;display:flex;align-items:center;gap:4px;padding:7px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 10px 28px #0005;white-space:nowrap}
-.bubble.mine .reaction-quickbar{left:auto;right:0}
+.reaction-quickbar{position:fixed;z-index:11000;left:0;top:0;bottom:auto;margin:0;display:flex;align-items:center;gap:4px;padding:7px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 10px 28px #0005;white-space:nowrap;max-width:calc(100vw - 16px)}
+.bubble.mine .reaction-quickbar{left:0;right:auto}
 .reaction-quickbar.hidden{display:none}
 .reaction-quick{width:34px;height:34px;border:0;border-radius:50%;background:transparent;font-size:22px;display:grid;place-items:center;padding:0}
 .reaction-quick:hover,.reaction-quick:focus-visible{background:color-mix(in srgb,var(--primary) 20%,var(--panel));outline:1px solid var(--primary)}
 .reaction-quick.plus{font-size:20px;font-weight:700;background:color-mix(in srgb,var(--primary) 17%,var(--panel));color:var(--text)}
-.reaction-picker{position:absolute;z-index:120;left:0;top:100%;bottom:auto;margin-top:8px;width:min(310px,78vw);padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 36px #0005;display:flex;flex-direction:column;gap:8px}
-.bubble.mine .reaction-picker{left:auto;right:0}
+.reaction-picker{position:fixed;z-index:11001;left:0;top:0;bottom:auto;margin:0;width:min(310px,78vw);padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 36px #0005;display:flex;flex-direction:column;gap:8px}
+.bubble.mine .reaction-picker{left:0;right:auto}
 .reaction-picker.hidden{display:none}
 .reaction-picker-search{width:100%;margin:0;padding:9px 11px;border-radius:11px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:14px;outline:none}
 .reaction-emoji-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:2px;max-height:210px;overflow-y:auto;overscroll-behavior:contain}
@@ -1674,11 +1674,31 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
           };
           drawEmoji();
           picker.appendChild(grid); reactionArea.appendChild(picker);
-          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");});
+          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");if(!picker.classList.contains("hidden"))positionReactionPopup(picker);});
+          // Position the reaction popup above the selected message, centered on it,
+          // while clamping it inside the visible viewport on small screens.
+          const positionReactionPopup = popup => {
+            const messageRect = bubble.getBoundingClientRect();
+            const popupRect = popup.getBoundingClientRect();
+            const margin = 8;
+            const popupWidth = popupRect.width || popup.offsetWidth;
+            const popupHeight = popupRect.height || popup.offsetHeight;
+            let left = messageRect.left + (messageRect.width - popupWidth) / 2;
+            left = Math.max(margin, Math.min(left, window.innerWidth - popupWidth - margin));
+            let top = messageRect.top - popupHeight - 10;
+            // If the message is near the top, show it directly below instead.
+            if (top < margin) top = Math.min(messageRect.bottom + 10, window.innerHeight - popupHeight - margin);
+            popup.style.left = `${left}px`;
+            popup.style.top = `${Math.max(margin, top)}px`;
+          };
           const openPicker=event=>{
             if(event){event.preventDefault();event.stopPropagation();}
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
-            picker.classList.add("hidden");quickbar.classList.toggle("hidden");
+            picker.classList.add("hidden");
+            if(quickbar.classList.contains("hidden")){
+              quickbar.classList.remove("hidden");
+              positionReactionPopup(quickbar);
+            } else quickbar.classList.add("hidden");
           };
           // Long-press on either sent or received message opens reactions.
           // Avoid relying on event.target because it may be nested text/media.
@@ -1690,6 +1710,7 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             });
             picker.classList.add("hidden");
             quickbar.classList.remove("hidden");
+            positionReactionPopup(quickbar);
             reactionArea.classList.add("reaction-open");
           });
           // Keep double-tap support too.
