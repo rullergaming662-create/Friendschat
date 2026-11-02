@@ -2153,3 +2153,16 @@ if (themeToggle) themeToggle.addEventListener("click", () => {
 </script>
 </body>
 </html>
+
+/* Reaction picker fix: show above the message, not over the next message. */
+.reaction-quickbar,
+.reaction-picker {
+  top: auto !important;
+  bottom: 100% !important;
+  margin-top: 0 !important;
+  margin-bottom: 8px !important;
+}
+@media(max-width:650px) {
+  .reaction-quickbar { max-width: calc(100vw - 24px); overflow-x: auto; }
+  .reaction-picker { max-width: calc(100vw - 24px); }
+}
