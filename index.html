@@ -1885,79 +1885,84 @@ $("backBtn").addEventListener("click", () => {
   $("chatPanel").classList.remove("chat-open");
 });
 
-/* Send text, photo, audio, or file */
-let messageSendInProgress = false;
-$("messageForm").addEventListener("submit", async e => {
+/* Send text, photo, audio, or file. Clear the composer immediately so the user
+   can type/send the next message while Firestore finishes the previous write. */
+let pendingMessageSends = 0;
+$('messageForm').addEventListener('submit', e => {
   e.preventDefault();
-  if (messageSendInProgress) return;
 
-  const input = $("messageInput");
+  const input = $('messageInput');
   const text = input.value.trim();
   const imageData = selectedImageData;
   const attachment = selectedAttachment;
+  const user = currentUser;
+  const recipient = selectedUser;
+  const reply = replyTarget ? {...replyTarget} : null;
+  const chatSecret = activeChatSecret;
 
-  if ((!text && !imageData) || !currentUser || !selectedUser) return;
+  if ((!text && !imageData) || !user || !recipient) return;
 
-  const chatId = conversationId(currentUser.uid, selectedUser.uid);
+  const chatId = conversationId(user.uid, recipient.uid);
   const payload = {
-    type: attachment ? attachment.type : (imageData ? "image" : "text"),
+    type: attachment ? attachment.type : (imageData ? 'image' : 'text'),
     text,
-    senderId: currentUser.uid,
-    receiverId: selectedUser.uid,
+    senderId: user.uid,
+    receiverId: recipient.uid,
     createdAt: serverTimestamp(),
     readAt: null,
     deliveredAt: null
   };
-  if (replyTarget) { payload.replyToId=replyTarget.id; payload.replyToText=replyTarget.text; payload.replyToSenderName=replyTarget.senderName; }
+  if (reply) {
+    payload.replyToId = reply.id;
+    payload.replyToText = reply.text;
+    payload.replyToSenderName = reply.senderName;
+  }
   if (imageData) payload.imageData = imageData;
   if (attachment) {
     payload.fileName = attachment.name;
     payload.mimeType = attachment.mimeType;
   }
 
-  const oldText = input.value;
-  messageSendInProgress = true;
-  const sendButton = $("sendBtn");
-  if (sendButton) sendButton.disabled = true;
+  // Immediately reset the composer on the first tap.
+  input.value = '';
+  clearSelectedImage();
+  clearReplyTarget();
+  updateTyping(false);
+  input.focus();
 
-  try {
-    // The message itself is the primary operation. Do not treat recent-chat
-    // metadata failures as a failed message after the message was committed.
-    await addDoc(collection(db, "chats", chatId, "messages"), payload);
-    input.value = "";
-    clearSelectedImage();
-    clearReplyTarget();
+  // Do not lock the send button or composer while a previous write is pending.
+  // Each tap captures its own payload, so the next message can be typed/sent.
+  pendingMessageSends++;
+  const sendButton = $('sendBtn');
+  if (sendButton) sendButton.dataset.pending = String(pendingMessageSends);
 
-    // Best-effort recent chat updates. Firestore rules may independently
-    // restrict these writes; that must not undo or falsely fail the message.
+  (async () => {
     try {
-      await saveRecentChat(selectedUser, payload, 0, currentUser.uid, activeChatSecret);
-    } catch (recentErr) {
-      console.warn("Sender recent-chat update blocked:", recentErr);
-    }
-    try {
+      await addDoc(collection(db, 'chats', chatId, 'messages'), payload);
+
+      // Best-effort recent-chat updates; don't delay the next send.
+      saveRecentChat(recipient, payload, 0, user.uid, chatSecret)
+        .catch(err => console.warn('Sender recent-chat update blocked:', err));
       const myProfile = {
-        uid: currentUser.uid,
-        name: $("myName").textContent || "Friend",
-        photoData: ""
+        uid: user.uid,
+        name: $('myName').textContent || 'Friend',
+        photoData: ''
       };
-      const avatarImg = $("myAvatar").querySelector("img");
+      const avatarImg = $('myAvatar').querySelector('img');
       if (avatarImg) myProfile.photoData = avatarImg.src;
-      await saveRecentChat(myProfile, payload, 1, selectedUser.uid);
-    } catch (recentErr) {
-      console.warn("Receiver recent-chat update blocked:", recentErr);
+      saveRecentChat(myProfile, payload, 1, recipient.uid)
+        .catch(err => console.warn('Receiver recent-chat update blocked:', err));
+    } catch (err) {
+      console.error('Message send failed:', err);
+      // Don't overwrite any newer draft the user may already be typing.
+      alert('Message nahi hua. Aapka message tha: ' + (text || attachment?.name || 'Attachment') + '\n' + friendlyError(err));
+    } finally {
+      pendingMessageSends = Math.max(0, pendingMessageSends - 1);
+      if (sendButton) sendButton.dataset.pending = String(pendingMessageSends);
+      input.focus();
     }
-  } catch (err) {
-    console.error("Message send failed:", err);
-    alert("Message send nahi hua: " + friendlyError(err));
-    input.value = oldText;
-  } finally {
-    messageSendInProgress = false;
-    if (sendButton) sendButton.disabled = false;
-    input.focus();
-  }
+  })();
 });
-
 
 // Light/Dark theme toggle. Keep the selected theme across reloads.
 const themeToggle = $("themeToggle");
