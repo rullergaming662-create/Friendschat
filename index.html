@@ -413,13 +413,13 @@ button {
 .reaction-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid color-mix(in srgb,var(--primary) 38%,var(--line));background:color-mix(in srgb,var(--panel) 82%,var(--primary));color:var(--text);border-radius:999px;padding:4px 9px;font-size:15px;line-height:1.25}
 .reaction-chip.mine-reaction{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 18%,var(--panel))}
 .reaction-count{font-size:11px;color:var(--muted);font-weight:700}
-.reaction-quickbar{position:absolute;z-index:110;left:0;top:100%;bottom:auto;margin-top:8px;display:flex;align-items:center;gap:4px;padding:7px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 10px 28px #0005;white-space:nowrap}
+.reaction-quickbar{position:absolute;z-index:110;left:0;bottom:100%;top:auto;margin-bottom:8px;display:flex;align-items:center;gap:4px;padding:7px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 10px 28px #0005;white-space:nowrap}
 .bubble.mine .reaction-quickbar{left:auto;right:0}
 .reaction-quickbar.hidden{display:none}
 .reaction-quick{width:34px;height:34px;border:0;border-radius:50%;background:transparent;font-size:22px;display:grid;place-items:center;padding:0}
 .reaction-quick:hover,.reaction-quick:focus-visible{background:color-mix(in srgb,var(--primary) 20%,var(--panel));outline:1px solid var(--primary)}
 .reaction-quick.plus{font-size:20px;font-weight:700;background:color-mix(in srgb,var(--primary) 17%,var(--panel));color:var(--text)}
-.reaction-picker{position:absolute;z-index:120;left:0;top:100%;bottom:auto;margin-top:8px;width:min(310px,78vw);padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 36px #0005;display:flex;flex-direction:column;gap:8px}
+.reaction-picker{position:absolute;z-index:120;left:0;bottom:100%;top:auto;margin-bottom:8px;width:min(310px,78vw);padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 36px #0005;display:flex;flex-direction:column;gap:8px}
 .bubble.mine .reaction-picker{left:auto;right:0}
 .reaction-picker.hidden{display:none}
 .reaction-picker-search{width:100%;margin:0;padding:9px 11px;border-radius:11px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:14px;outline:none}
@@ -1439,31 +1439,22 @@ function openChat(friend, isSecret = false) {
         bubble.dataset.senderId = message.senderId || "";
         bubble.dataset.deleted = String(message.type === "deleted");
         if (messageSelectionMode) bubble.classList.add("selectable");
-        // Double-tap opens reactions; long-press opens the delete menu.
+        // Long-press opens the WhatsApp-style reaction bar.
+        // Message selection remains available through the existing selection mode.
         let holdTimer = null;
         let holdTriggered = false;
-        let lastTapTime = 0;
         bubble.addEventListener("pointerdown", event => {
           if (event.target.closest("a,button,audio,input")) return;
           holdTriggered = false;
-          const now = Date.now();
-          if (now - lastTapTime < 320) {
-            lastTapTime = 0;
-            if (holdTimer) clearTimeout(holdTimer);
-            holdTimer = null;
-            event.preventDefault();
-            bubble.dispatchEvent(new CustomEvent("message-doubletap", {bubbles:false}));
-            return;
-          }
-          lastTapTime = now;
           holdTimer = setTimeout(() => {
             holdTriggered = true;
-            startMessageSelection();
-            selectedMessageIds.clear();
-            selectedMessageIds.add(item.id);
-            updateMessageSelectionUI();
-            $("messageDeleteMenu").classList.remove("hidden");
-            bubble.dispatchEvent(new CustomEvent("message-longpress"));
+            if (messageSelectionMode) {
+              selectedMessageIds.clear();
+              selectedMessageIds.add(item.id);
+              updateMessageSelectionUI();
+            } else if (message.type !== "deleted") {
+              bubble.dispatchEvent(new CustomEvent("message-longpress", { bubbles:false }));
+            }
           }, 550);
         });
         const cancelHold = () => {
@@ -1691,8 +1682,9 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
           };
-          // Double-tap on a message opens the reaction bar.
-          bubble.addEventListener("message-doubletap", event => {
+          // Long-press on either sent or received message opens reactions.
+          // Avoid relying on event.target because it may be nested text/media.
+          bubble.addEventListener("message-longpress", event => {
             event.preventDefault?.();
             event.stopPropagation?.();
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{
@@ -1701,6 +1693,11 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             picker.classList.add("hidden");
             quickbar.classList.remove("hidden");
             reactionArea.classList.add("reaction-open");
+          });
+          // Keep double-tap support too.
+          bubble.addEventListener("dblclick", event => {
+            if (event.target.closest("button,a,audio")) return;
+            openPicker(event);
           });
           quickbar.addEventListener("click",event=>event.stopPropagation());
           picker.addEventListener("click",event=>event.stopPropagation());
