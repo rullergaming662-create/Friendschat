@@ -1446,10 +1446,6 @@ function openChat(friend, isSecret = false) {
           holdTriggered = false;
           holdTimer = setTimeout(() => {
             holdTriggered = true;
-            startMessageSelection();
-            selectedMessageIds.clear();
-            selectedMessageIds.add(item.id);
-            updateMessageSelectionUI();
             bubble.dispatchEvent(new CustomEvent("message-longpress"));
           }, 550);
         });
@@ -1656,7 +1652,10 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             quickbar.appendChild(b);
           });
           const plus=document.createElement("button"); plus.type="button"; plus.className="reaction-quick plus"; plus.textContent="+"; plus.setAttribute("aria-label","More emoji");
-          quickbar.appendChild(plus); reactionArea.appendChild(quickbar);
+          quickbar.appendChild(plus);
+          const deleteBtn=document.createElement("button"); deleteBtn.type="button"; deleteBtn.className="reaction-quick"; deleteBtn.textContent="🗑️"; deleteBtn.setAttribute("aria-label","Delete message");
+          deleteBtn.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");selectedMessageIds.clear();selectedMessageIds.add(item.id);messageSelectionMode=true;updateMessageSelectionUI();$("messageDeleteMenu").classList.remove("hidden");});
+          quickbar.appendChild(deleteBtn); reactionArea.appendChild(quickbar);
 
           const picker = document.createElement("div"); picker.className = "reaction-picker hidden";
           picker.setAttribute("role","dialog"); picker.setAttribute("aria-label","Choose emoji reaction");
