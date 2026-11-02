@@ -597,6 +597,10 @@ button:active{transform:scale(.97)}
 </style>
 
 
+
+/* Swipe-to-reply visual feedback */
+.bubble.reply-swipe-active{animation:replySwipePulse .26s ease-out}
+@keyframes replySwipePulse{0%{transform:translateX(0)}45%{transform:translateX(7px)}100%{transform:translateX(0)}}
 </head>
 
 <body>
@@ -1624,6 +1628,26 @@ function openChat(friend, isSecret = false) {
           if(messageSelectionMode || message.type==="deleted") return;
           event.preventDefault();setReplyTarget({id:item.id,text:(message.text||message.fileName||"Attachment").slice(0,180),senderName:message.senderId===currentUser.uid?"You":(selectedUser?.name||"Friend")});
         });
+        // WhatsApp-style light right-swipe on a message to reply.
+        // Keep long-press reaction/selection behavior unchanged.
+        let replySwipeStart=null;
+        bubble.addEventListener("pointerdown", event=>{
+          if(event.pointerType!=="touch" || messageSelectionMode || message.type==="deleted" || event.target.closest("button,a,audio,input")) return;
+          replySwipeStart={x:event.clientX,y:event.clientY};
+        }, {passive:true});
+        bubble.addEventListener("pointerup", event=>{
+          if(!replySwipeStart) return;
+          const dx=event.clientX-replySwipeStart.x, dy=event.clientY-replySwipeStart.y;
+          replySwipeStart=null;
+          if(dx>48 && Math.abs(dx)>Math.abs(dy)*1.25 && !messageSelectionMode && message.type!=="deleted") {
+            setReplyTarget({id:item.id,text:(message.text||message.fileName||"Attachment").slice(0,180),senderName:message.senderId===currentUser.uid?"You":(selectedUser?.name||"Friend")});
+            bubble.classList.remove("reply-swipe-active");
+            void bubble.offsetWidth;
+            bubble.classList.add("reply-swipe-active");
+            setTimeout(()=>bubble.classList.remove("reply-swipe-active"),260);
+          }
+        }, {passive:true});
+        bubble.addEventListener("pointercancel",()=>{replySwipeStart=null;},{passive:true});
         if (message.type === "deleted") {
           const deletedText = document.createElement("div");
           deletedText.textContent = "🚫 This message was deleted";
