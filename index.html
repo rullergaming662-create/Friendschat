@@ -395,6 +395,12 @@ button {
 
 /* Compact message delete menu */
 .chat-head{position:relative}
+.friend-head-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;font-weight:600}
+.friend-presence{font-size:12px;font-weight:400;color:var(--muted);line-height:1.2}
+.friend-presence.online{color:#22c55e}
+.delete-chat-icon{flex:0 0 42px;width:42px;height:42px;padding:0;display:grid;place-items:center;border-radius:50%;background:#dc2626;color:#fff;box-shadow:0 3px 10px #dc262644}
+.delete-chat-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.delete-chat-icon:hover{background:#b91c1c}
 #messageDeleteMenu{position:fixed;right:16px;bottom:calc(92px + env(safe-area-inset-bottom));top:auto;z-index:10000;min-width:190px;padding:8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px #0005;display:flex;flex-direction:column;gap:5px}
 #messageDeleteMenu.hidden{display:none!important}
 #messageDeleteMenu button{width:100%;text-align:left;padding:11px 13px;border-radius:9px;background:transparent;color:var(--text)}
@@ -554,10 +560,9 @@ button {
 <div class="chat-head">
   <button id="backBtn" class="secondary">‹</button>
   <div class="avatar" id="friendAvatar">F</div>
-  <div id="friendName" style="flex:1">Friend</div>
+  <div class="friend-head-meta"><div id="friendName">Friend</div><div id="friendPresence" class="friend-presence">Offline</div></div>
   <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
-  <button id="messageDeleteMenuBtn" class="secondary hidden" type="button" aria-label="Delete selected messages" title="Select messages to delete">🗑️</button>
-  <button id="messageDeleteMenuBtn" class="secondary hidden" type="button" aria-label="Delete selected messages" title="Delete selected messages">🗑️</button>
+  <button id="messageDeleteMenuBtn" class="delete-chat-icon hidden" type="button" aria-label="Select messages to delete" title="Select messages to delete"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5"/></svg></button>
 </div>
 
 <div id="messages" class="messages"></div>
@@ -1074,6 +1079,10 @@ async function loadUsers() {
     allUsers = snapshot.docs
       .map(d => d.data())
       .filter(u => u.uid && u.uid !== currentUser.uid && u.name);
+    if (selectedUser) {
+      const freshFriend = allUsers.find(u => u.uid === selectedUser.uid);
+      if (freshFriend) { selectedUser = freshFriend; renderChatPresence(freshFriend); }
+    }
     renderUsers();
     renderRecentChats();
   }, err => {
@@ -1369,6 +1378,26 @@ $("clearChatBtn").addEventListener("click", async () => {
   }
 });
 
+function formatLastSeen(user) {
+  const stamp = user && user.lastSeen;
+  const ms = stamp && typeof stamp.toMillis === "function" ? stamp.toMillis() : (stamp instanceof Date ? stamp.getTime() : 0);
+  if (!ms) return "Last seen unavailable";
+  const date = new Date(ms);
+  const now = new Date();
+  const time = date.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  if (date.toDateString() === now.toDateString()) return `Last seen today at ${time}`;
+  const yesterday = new Date(now); yesterday.setDate(now.getDate()-1);
+  if (date.toDateString() === yesterday.toDateString()) return `Last seen yesterday at ${time}`;
+  return `Last seen ${date.toLocaleDateString([], {day:"numeric",month:"short"})} at ${time}`;
+}
+function renderChatPresence(friend) {
+  const presence = $("friendPresence");
+  if (!presence || !friend) return;
+  const online = isUserOnline(friend);
+  presence.textContent = online ? "● Online" : formatLastSeen(friend);
+  presence.classList.toggle("online", online);
+}
+
 /* Open conversation */
 function openChat(friend, isSecret = false) {
   selectedUser = friend;
@@ -1379,6 +1408,7 @@ function openChat(friend, isSecret = false) {
   $("activeChat").classList.remove("hidden");
 
   $("friendName").textContent = friend.name;
+  renderChatPresence(friend);
 
   renderAvatar($("friendAvatar"), friend.name, friend.photoData || "");
 
