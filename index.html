@@ -265,6 +265,16 @@ button {
 }
 
 .composer input { flex:1;min-width:0; }
+/* Keep the voice recorder as the only composer control while recording. */
+#messageForm.recording .attach-wrap,
+#messageForm.recording #messageInput,
+#messageForm.recording #sendBtn { display:none !important; }
+#messageForm.recording { align-items:center; gap:8px; }
+#messageForm.recording #voiceRecorderBar { flex:1 1 100%; width:100%; min-width:0; }
+#sendBtn { flex:0 0 54px; width:54px; height:54px; min-width:54px; padding:0; border-radius:50%; display:grid; place-items:center; overflow:hidden; }
+#sendBtn svg { width:25px; height:25px; display:block; }
+#sendBtn:disabled { opacity:.65; }
+
 .attach-wrap {position:relative;display:flex;align-items:center}
 .attach-button {display:grid;place-items:center;width:48px;height:48px;flex-shrink:0;border-radius:16px;background:linear-gradient(145deg,#8b5cf6,#4f7cff);color:white;box-shadow:0 5px 16px #6577ff44;border:1px solid #ffffff20;transition:transform .16s ease}
 .attach-button:active {transform:scale(.94)}
@@ -1764,10 +1774,10 @@ voiceWave.innerHTML=Array.from({length:28},(_,i)=>`<i style="height:${8+(i*17%31
 function formatVoiceTime(ms){const n=Math.floor(ms/1000);return `${Math.floor(n/60)}:${String(n%60).padStart(2,"0")}`;}
 function updateVoiceTimer(){voiceTimer.textContent=formatVoiceTime(voiceElapsed+(voicePaused?0:Date.now()-voiceStartedAt));}
 function stopVoiceTimer(){clearInterval(voiceTimerInterval);voiceTimerInterval=null;}
-function resetVoiceUI(){stopVoiceTimer();voiceBar.classList.add("hidden");$("voiceRecordBtn").classList.remove("hidden");voicePaused=false;voiceElapsed=0;voiceTimer.textContent="0:00";voiceWave.classList.remove("paused");}
+function resetVoiceUI(){stopVoiceTimer();$("messageForm").classList.remove("recording");voiceBar.classList.add("hidden");$("voiceRecordBtn").classList.remove("hidden");voicePaused=false;voiceElapsed=0;voiceTimer.textContent="0:00";voiceWave.classList.remove("paused");}
 async function beginVoiceRecording(){
  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){alert("Voice recording is not supported in this browser.");return;}
- try{voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});const options=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?{mimeType:"audio/webm;codecs=opus"}:{};mediaRecorder=new MediaRecorder(voiceStream,options);recordedChunks=[];mediaRecorder.ondataavailable=e=>{if(e.data.size)recordedChunks.push(e.data);};mediaRecorder.start();voiceStartedAt=Date.now();voiceElapsed=0;voicePaused=false;$("voiceRecordBtn").classList.add("hidden");voiceBar.classList.remove("hidden");voiceTimerInterval=setInterval(updateVoiceTimer,200);}catch(err){alert("Microphone access nahi mila. Browser settings mein permission allow karein.");console.error(err);}
+ try{voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});const options=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?{mimeType:"audio/webm;codecs=opus"}:{};mediaRecorder=new MediaRecorder(voiceStream,options);recordedChunks=[];mediaRecorder.ondataavailable=e=>{if(e.data.size)recordedChunks.push(e.data);};mediaRecorder.start();voiceStartedAt=Date.now();voiceElapsed=0;voicePaused=false;$("voiceRecordBtn").classList.add("hidden");$("messageForm").classList.add("recording");voiceBar.classList.remove("hidden");voiceTimerInterval=setInterval(updateVoiceTimer,200);}catch(err){alert("Microphone access nahi mila. Browser settings mein permission allow karein.");console.error(err);}
 }
 function finalizeVoiceRecording(){return new Promise(resolve=>{if(!mediaRecorder){resolve(null);return;}const recorder=mediaRecorder;recorder.onstop=async()=>{if(voiceStream)voiceStream.getTracks().forEach(t=>t.stop());voiceStream=null;const blob=new Blob(recordedChunks,{type:recorder.mimeType||"audio/webm"});resetVoiceUI();if(!blob.size||blob.size>950*1024){if(blob.size>950*1024)alert("Voice message 950 KB se bada hai. Thoda chhota record karein.");resolve(null);return;}const dataUrl=await new Promise((res,rej)=>{const reader=new FileReader();reader.onload=()=>res(reader.result);reader.onerror=rej;reader.readAsDataURL(blob);});resolve({type:"audio",name:"voice-message.webm",mimeType:blob.type||"audio/webm",data:dataUrl});};if(recorder.state!=="inactive")recorder.stop();else resolve(null);});}
 $("voiceRecordBtn").addEventListener("click",beginVoiceRecording);
