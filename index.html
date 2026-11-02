@@ -583,6 +583,18 @@ button:active{transform:scale(.97)}
 }
 
 </style>
+
+/* Final composer polish: transparent send action, matching the user's reference. */
+.composer #sendBtn{
+  background:transparent!important;
+  color:var(--primary)!important;
+  border:1px solid color-mix(in srgb,var(--primary) 18%,transparent)!important;
+  box-shadow:none!important;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.composer #sendBtn svg{color:var(--primary)!important;fill:currentColor!important;}
+.composer #sendBtn:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+
 </head>
 
 <body>
