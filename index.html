@@ -146,8 +146,6 @@ button {
   overflow-wrap:anywhere;
 }
 
-#workspace > header { display:none; }
-
 #workspace {
   flex:1;
   display:flex;
@@ -541,7 +539,7 @@ body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}
 .chat{background:#0b141a;position:relative}
 .chat-head{min-height:72px;padding:12px 18px;background:#202c33;color:#e9edef;border-bottom:1px solid #2a3942}
 :root[data-theme="light"] .chat-head{background:#f0f2f5;color:#111b21;border-color:#d9e0e4}
-.chat-head #friendName{font-weight:600;line-height:1.25}.chat-head #friendStatus{font-size:12px;color:var(--muted);line-height:1.2}.chat-head #friendStatus.online{color:#22c55e}.chat-head #friendStatus.offline{color:var(--muted)}
+.chat-head #friendName{font-weight:600}
 .messages{padding:22px clamp(12px,4vw,56px);gap:7px;background-color:#0b141a;background-image:radial-gradient(rgba(134,150,160,.055) .7px,transparent .7px);background-size:17px 17px}
 :root[data-theme="light"] .messages{background-color:#efeae2;background-image:radial-gradient(rgba(17,27,33,.045) .7px,transparent .7px)}
 .bubble{max-width:min(78%,620px);background:#202c33;color:#e9edef;border-radius:8px 8px 8px 2px;padding:8px 10px;box-shadow:0 1px 1px #00000015;font-size:14.5px;line-height:1.42}
@@ -588,26 +586,6 @@ button:active{transform:scale(.97)}
 .composer #sendBtn{background:transparent!important;color:var(--primary)!important;border:1px solid color-mix(in srgb,var(--primary) 18%,transparent)!important;box-shadow:none!important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .composer #sendBtn svg{color:var(--primary)!important;fill:currentColor!important}
 .composer #sendBtn:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
-
-/* Fixed chat shell: only the message history scrolls, like WhatsApp. */
-html, body { width:100%; height:100%; min-height:0; margin:0; overflow:hidden; }
-#app { width:100%; height:100dvh; min-height:0; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column; }
-#workspace { flex:1 1 auto; min-height:0; height:100%; display:flex; flex-direction:column; overflow:hidden; }
-#workspace > header { flex:0 0 auto; }
-#main { flex:1 1 auto; min-height:0; height:0; display:flex; overflow:hidden; }
-.sidebar { min-height:0; overflow-y:auto; overscroll-behavior:contain; }
-#chatPanel.chat { flex:1 1 auto; min-width:0; min-height:0; height:100%; overflow:hidden; }
-#activeChat { flex:1 1 auto !important; min-height:0 !important; height:100%; overflow:hidden; }
-.chat-head { flex:0 0 auto; }
-#messages.messages { flex:1 1 auto; min-height:0; height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
-#typingIndicator, #replyPreview, #imagePreviewWrap, #messageForm.composer { flex:0 0 auto; }
-#messageForm.composer { position:relative; z-index:5; padding-bottom:calc(10px + env(safe-area-inset-bottom)); }
-@media(max-width:650px) {
-  #main { position:relative; }
-  .chat.chat-open { position:absolute; inset:0; height:100%; }
-  #workspace > header { min-height:60px; padding:10px 14px; }
-  #messages.messages { padding-bottom:12px; }
-}
 
 /* WhatsApp-style swipe reply feedback */
 .bubble.reply-swiping{transition:transform .08s linear;will-change:transform}
@@ -706,8 +684,8 @@ html, body { width:100%; height:100%; min-height:0; margin:0; overflow:hidden; }
 
 <div class="chat-head">
   <button id="backBtn" class="secondary">‹</button>
-  <div class="avatar" id="friendAvatar" title="View profile photo">F</div>
-  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><div id="friendName">Friend</div><div id="friendStatus" class="person-status">Offline</div></div>
+  <div class="avatar" id="friendAvatar">F</div>
+  <div id="friendName" style="flex:1">Friend</div>
   <button id="messageDeleteMenuBtn" class="secondary hidden" type="button" aria-label="Delete selected message" title="Delete selected message">🗑️</button>
   <button id="clearChatBtn" class="secondary hidden" type="button">Clear Chat</button>
 </div>
@@ -1190,27 +1168,6 @@ function isUserOnline(user) {
   return user.online === true && lastSeenMs > 0 && (Date.now() - lastSeenMs) < 60000;
 }
 
-function formatLastSeen(user) {
-  const stamp = user && user.lastSeen;
-  const ms = stamp && typeof stamp.toMillis === "function" ? stamp.toMillis() : (stamp instanceof Date ? stamp.getTime() : 0);
-  if (!ms) return "Last seen recently";
-  const d = new Date(ms);
-  const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
-  const yesterday = new Date(now); yesterday.setDate(now.getDate()-1);
-  if (sameDay) return "Last seen today at " + d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-  if (d.toDateString() === yesterday.toDateString()) return "Last seen yesterday at " + d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-  return "Last seen " + d.toLocaleDateString([], {day:"numeric",month:"short"}) + " at " + d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-}
-function updateChatPresence(user) {
-  const status = $("friendStatus");
-  if (!status || !user) return;
-  const online = isUserOnline(user);
-  status.textContent = online ? "● Online" : formatLastSeen(user);
-  status.classList.toggle("online", online);
-  status.classList.toggle("offline", !online);
-}
-
 function renderRecentChats() {
   const normalList = $("recentList");
   if (!normalList) return;
@@ -1249,10 +1206,6 @@ async function loadUsers() {
       .filter(u => u.uid && u.uid !== currentUser.uid && u.name);
     renderUsers();
     renderRecentChats();
-    if (selectedUser) {
-      const freshPeer = allUsers.find(u => u.uid === selectedUser.uid);
-      if (freshPeer) { selectedUser = freshPeer; updateChatPresence(freshPeer); }
-    }
   }, err => {
     console.warn("Users listener:", err);
     $("userList").innerHTML = `<div class="empty">${friendlyError(err)}</div>`;
@@ -1548,7 +1501,6 @@ function openChat(friend, isSecret = false) {
   $("activeChat").classList.remove("hidden");
 
   $("friendName").textContent = friend.name;
-  updateChatPresence(allUsers.find(u => u.uid === friend.uid) || friend);
 
   renderAvatar($("friendAvatar"), friend.name, friend.photoData || "");
 
