@@ -1452,6 +1452,13 @@ function startMessageSelection() {
 function toggleMessageSelection(id) {
   if (selectedMessageIds.has(id)) selectedMessageIds.delete(id);
   else selectedMessageIds.add(id);
+  if (selectedMessageIds.size === 0) {
+    messageSelectionMode = false;
+    document.querySelectorAll("#messages [data-message-id]").forEach(el => el.classList.remove("selectable"));
+  } else {
+    messageSelectionMode = true;
+    addSelectionChecks();
+  }
   updateMessageSelectionUI();
 }
 function resetMessageSelection() {
@@ -1629,8 +1636,10 @@ function openChat(friend, isSecret = false) {
             holdTriggered = true;
             // Long press selects this single message for the top delete action,
             // while also opening its emoji reaction bar (WhatsApp-like behavior).
+            messageSelectionMode = true;
             selectedMessageIds.clear();
             selectedMessageIds.add(item.id);
+            addSelectionChecks();
             updateMessageSelectionUI();
             bubble.dispatchEvent(new CustomEvent("message-longpress"));
           }, 550);
@@ -1851,31 +1860,22 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
 
           // Quick reaction bar: six common emoji + a plus button for the full emoji list.
           const quickbar = document.createElement("div"); quickbar.className = "reaction-quickbar hidden";
-          const placeReactionPopup = (popup, aboveBubble=true) => {
+          const placeReactionPopup = popup => {
             requestAnimationFrame(() => {
-              const rect = bubble.getBoundingClientRect();
-              const popupRect = popup.getBoundingClientRect();
-              const width = popupRect.width || (popup === quickbar ? 300 : 310);
-              const height = popupRect.height || 56;
-              const left = Math.max(8, Math.min(
-                rect.left + (rect.width - width) / 2,
-                window.innerWidth - width - 8
-              ));
-              // Keep the popup above the selected message, within the visible viewport.
-              const desiredTop = aboveBubble ? rect.top - height - 10 : rect.top;
-              const top = Math.max(8, Math.min(desiredTop, window.innerHeight - height - 8));
-              popup.style.left = left + "px";
-              popup.style.top = top + "px";
+              const r = bubble.getBoundingClientRect();
+              const pr = popup.getBoundingClientRect();
+              const w = pr.width || 290, h = pr.height || 54;
+              popup.style.left = Math.max(8, Math.min(r.left + (r.width-w)/2, innerWidth-w-8)) + "px";
+              popup.style.top = Math.max(8, r.top-h-8) + "px";
             });
           };
-
           const quickChoices = ["👍","❤️","😂","😮","😢","🙏"];
           const applyReaction = async emoji => {
             try {
               await updateDoc(doc(db,"chats",chatId,"messages",item.id), {[`reactions.${currentUser.uid}`]:emoji});
-              quickbar.classList.add("hidden"); picker.classList.add("hidden");
-              // WhatsApp-like behavior: after reacting, clear selection and
-              // close any reply preview. A reaction must never start a reply.
+              // Reacting clears every selected message and closes all selection/reaction controls.
+              document.querySelectorAll(".reaction-quickbar,.reaction-picker").forEach(el=>el.classList.add("hidden"));
+              $("messageDeleteMenu").classList.add("hidden");
               resetMessageSelection();
               clearReplyTarget();
               bubble.classList.remove("selected","message-selected");
@@ -1903,11 +1903,12 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
           };
           drawEmoji();
           picker.appendChild(grid); reactionArea.appendChild(picker);
-          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");if(!picker.classList.contains("hidden"))placeReactionPopup(picker,true);});
+          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");if(!picker.classList.contains("hidden"))placeReactionPopup(picker);});
           const openPicker=event=>{
             if(event){event.preventDefault();event.stopPropagation();}
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
-            picker.classList.add("hidden");quickbar.classList.toggle("hidden");if(!quickbar.classList.contains("hidden"))placeReactionPopup(quickbar,true);
+            picker.classList.add("hidden");quickbar.classList.toggle("hidden");
+            if(!quickbar.classList.contains("hidden"))placeReactionPopup(quickbar);
           };
           // Long-press on a message opens reactions and reveals the top delete icon.
           // Avoid relying on event.target because it may be nested text/media.
@@ -1919,6 +1920,7 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             });
             picker.classList.add("hidden");
             quickbar.classList.remove("hidden");
+            placeReactionPopup(quickbar);
           });
           // Keep double-tap support too.
           bubble.addEventListener("dblclick", event => {
@@ -2171,24 +2173,3 @@ if (themeToggle) themeToggle.addEventListener("click", () => {
 </script>
 </body>
 </html>
-
-/* Reaction controls are positioned directly above the selected message bubble. */
-.reaction-quickbar,
-.reaction-picker {
-  position: fixed !important;
-  top: 0;
-  bottom: auto !important;
-  left: 0;
-  right: auto !important;
-  margin: 0 !important;
-  z-index: 25000 !important;
-}
-.reaction-quickbar { max-width: calc(100vw - 16px); }
-.reaction-picker { max-width: calc(100vw - 16px); }
-
-<script>
-window.addEventListener("resize", () => {
-  document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)")
-    .forEach(el => el.classList.add("hidden"));
-}, {passive:true});
-</script>
