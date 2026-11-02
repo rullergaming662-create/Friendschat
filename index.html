@@ -1439,19 +1439,30 @@ function openChat(friend, isSecret = false) {
         bubble.dataset.senderId = message.senderId || "";
         bubble.dataset.deleted = String(message.type === "deleted");
         if (messageSelectionMode) bubble.classList.add("selectable");
-        // Long-press selects the message. Selection is indicated by an outline,
-        // not a check icon embedded in the bubble.
+        // Double-tap opens reactions; long-press opens the delete menu.
         let holdTimer = null;
         let holdTriggered = false;
+        let lastTapTime = 0;
         bubble.addEventListener("pointerdown", event => {
           if (event.target.closest("a,button,audio,input")) return;
           holdTriggered = false;
+          const now = Date.now();
+          if (now - lastTapTime < 320) {
+            lastTapTime = 0;
+            if (holdTimer) clearTimeout(holdTimer);
+            holdTimer = null;
+            event.preventDefault();
+            bubble.dispatchEvent(new CustomEvent("message-doubletap", {bubbles:false}));
+            return;
+          }
+          lastTapTime = now;
           holdTimer = setTimeout(() => {
             holdTriggered = true;
             startMessageSelection();
             selectedMessageIds.clear();
             selectedMessageIds.add(item.id);
             updateMessageSelectionUI();
+            $("messageDeleteMenu").classList.remove("hidden");
             bubble.dispatchEvent(new CustomEvent("message-longpress"));
           }, 550);
         });
@@ -1680,9 +1691,8 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
           };
-          // Long-press on either sent or received message opens reactions.
-          // Avoid relying on event.target because it may be nested text/media.
-          bubble.addEventListener("message-longpress", event => {
+          // Double-tap on a message opens the reaction bar.
+          bubble.addEventListener("message-doubletap", event => {
             event.preventDefault?.();
             event.stopPropagation?.();
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{
@@ -1691,11 +1701,6 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
             picker.classList.add("hidden");
             quickbar.classList.remove("hidden");
             reactionArea.classList.add("reaction-open");
-          });
-          // Keep double-tap support too.
-          bubble.addEventListener("dblclick", event => {
-            if (event.target.closest("button,a,audio")) return;
-            openPicker(event);
           });
           quickbar.addEventListener("click",event=>event.stopPropagation());
           picker.addEventListener("click",event=>event.stopPropagation());
