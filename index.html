@@ -1885,14 +1885,36 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
           };
           drawEmoji();
           picker.appendChild(grid); reactionArea.appendChild(picker);
-          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");});
+          plus.addEventListener("click",ev=>{ev.preventDefault();ev.stopPropagation();quickbar.classList.add("hidden");picker.classList.toggle("hidden");if(!picker.classList.contains("hidden"))requestAnimationFrame(()=>placeReactionPopup(picker));});
           const openPicker=event=>{
             if(event){event.preventDefault();event.stopPropagation();}
             document.querySelectorAll(".reaction-quickbar:not(.hidden),.reaction-picker:not(.hidden)").forEach(other=>{if(other!==quickbar&&other!==picker)other.classList.add("hidden");});
             picker.classList.add("hidden");quickbar.classList.toggle("hidden");
           };
-          // Long-press on a message opens reactions and reveals the top delete icon.
-          // Avoid relying on event.target because it may be nested text/media.
+          // Position the reaction bar as a viewport overlay above the selected
+          // message (WhatsApp-style), not inside the message flow where it can
+          // cover the next message or get clipped by the scrolling container.
+          const placeReactionPopup = popup => {
+            const rect = bubble.getBoundingClientRect();
+            const margin = 12;
+            const popupRect = popup.getBoundingClientRect();
+            const width = Math.min(popupRect.width || 320, window.innerWidth - margin * 2);
+            let left = rect.left + (rect.width - width) / 2;
+            left = Math.max(margin, Math.min(left, window.innerWidth - width - margin));
+            let top = rect.top - (popupRect.height || 56) - 10;
+            if (top < margin) top = Math.min(window.innerHeight - (popupRect.height || 56) - margin, rect.bottom + 10);
+            popup.style.position = "fixed";
+            popup.style.left = `${left}px`;
+            popup.style.right = "auto";
+            popup.style.top = `${Math.max(margin, top)}px`;
+            popup.style.bottom = "auto";
+            popup.style.margin = "0";
+          };
+          const openQuickbarAboveMessage = () => {
+            quickbar.classList.remove("hidden");
+            requestAnimationFrame(() => placeReactionPopup(quickbar));
+          };
+          // Long-press on a message opens reactions above that exact message.
           bubble.addEventListener("message-longpress", event => {
             event.preventDefault?.();
             event.stopPropagation?.();
@@ -1900,7 +1922,7 @@ $("reactionDetailsOverlay").addEventListener("click", event => {
               if(other!==quickbar && other!==picker) other.classList.add("hidden");
             });
             picker.classList.add("hidden");
-            quickbar.classList.remove("hidden");
+            openQuickbarAboveMessage();
           });
           // Keep double-tap support too.
           bubble.addEventListener("dblclick", event => {
@@ -2166,3 +2188,6 @@ if (themeToggle) themeToggle.addEventListener("click", () => {
   .reaction-quickbar { max-width: calc(100vw - 24px); overflow-x: auto; }
   .reaction-picker { max-width: calc(100vw - 24px); }
 }
+
+/* Reaction controls are fixed overlays positioned by the selected message. */
+.reaction-quickbar,.reaction-picker{position:fixed!important;top:auto;bottom:auto;left:auto;right:auto;margin:0!important;z-index:20001!important}
